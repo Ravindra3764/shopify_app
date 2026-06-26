@@ -13,6 +13,9 @@ class LoadingShimmer extends StatelessWidget {
   /// Home screen skeleton: hero banner + two product rows.
   const LoadingShimmer.home({Key? key}) : this._(_homeLayout, key: key);
 
+  /// Product grid skeleton: a 2-column grid of card placeholders.
+  const LoadingShimmer.grid({Key? key}) : this._(_gridLayout, key: key);
+
   final Widget Function(BuildContext) _builder;
 
   @override
@@ -32,6 +35,20 @@ class LoadingShimmer extends StatelessWidget {
         const SizedBox(height: AppSpacing.xl),
         _row(),
       ],
+    );
+  }
+
+  static Widget _gridLayout(BuildContext context) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      itemCount: 6,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: AppSpacing.lg,
+        crossAxisSpacing: AppSpacing.md,
+        mainAxisExtent: AppDimensions.productCardHeight,
+      ),
+      itemBuilder: (_, _) => const _Box(),
     );
   }
 

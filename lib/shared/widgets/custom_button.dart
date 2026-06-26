@@ -149,9 +149,7 @@ class CustomButton extends StatelessWidget {
                       height: AppDimensions.iconMd,
                       child: CircularProgressIndicator(
                         strokeWidth: _spinnerStroke,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          labelColor,
-                        ),
+                        valueColor: AlwaysStoppedAnimation<Color>(labelColor),
                       ),
                     )
                   : Row(
@@ -167,8 +165,9 @@ class CustomButton extends StatelessWidget {
                             textAlign: TextAlign.center,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.labelLarge
-                                ?.copyWith(color: labelColor),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelLarge?.copyWith(color: labelColor),
                           ),
                         ),
                         if (trailingIcon != null) ...[

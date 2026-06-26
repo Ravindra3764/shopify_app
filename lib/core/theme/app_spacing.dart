@@ -1,9 +1,3 @@
-/// Centralized spacing scale. Use these instead of magic numbers in widgets.
-///
-/// ```dart
-/// Padding(padding: EdgeInsets.all(AppSpacing.md), child: ...)
-/// SizedBox(height: AppSpacing.sm)
-/// ```
 abstract final class AppSpacing {
   static const double xs = 4;
   static const double sm = 8;

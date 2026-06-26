@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shopify_app/core/error/failure.dart';
+import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/home/domain/home_data.dart';
 import 'package:shopify_app/features/home/presentation/providers/home_providers.dart';
@@ -69,12 +71,24 @@ class _HomeContent extends ConsumerWidget {
           if (home.banners.isNotEmpty)
             HomeBannerCarousel(
               banners: home.banners,
-              // TODO(home): route to banner.ctaCollectionHandle's collection.
-              onCta: (_) {},
+              onCta: (banner) {
+                final handle = banner.ctaCollectionHandle;
+                if (handle == null || handle.isEmpty) return;
+                context.push(
+                  AppRoutes.collectionPath(handle),
+                  extra: banner.title,
+                );
+              },
             ),
           for (final collection in home.collections) ...[
             const SizedBox(height: AppSpacing.xl),
-            CollectionSection(collection: collection),
+            CollectionSection(
+              collection: collection,
+              onSeeAll: () => context.push(
+                AppRoutes.collectionPath(collection.handle),
+                extra: collection.title,
+              ),
+            ),
           ],
         ],
       ),
