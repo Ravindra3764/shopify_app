@@ -1,15 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shopify_app/config/app_config.dart';
 
-/// App color palette.
-///
-/// The brand [primary] is tenant-specific and comes from `.env` — call
-/// [init] once in `bootstrap()` before building the theme. Everything else is
-/// a shared neutral/semantic constant (text shades, hints, borders, states)
-/// kept identical across tenants for a consistent e-commerce look.
-///
-/// Feature widgets should prefer `Theme.of(context).colorScheme`; reach into
-/// [AppColors] only for neutrals not expressed by the scheme.
 abstract final class AppColors {
   // --- Brand (tenant-driven) -------------------------------------------------
 

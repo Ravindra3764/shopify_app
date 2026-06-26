@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/Helper/assets_helper.dart';
 import 'package:shopify_app/features/home/presentation/screens/home_screen.dart';
 import 'package:shopify_app/providers/config_providers.dart';
+import 'package:shopify_app/shared/widgets/custom_background.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -58,9 +59,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final colorScheme = Theme.of(context).colorScheme;
     // AssetsHelper prepends `assets/images/`; pass the bare file name.
     final logoName = config.logoAsset.split('/').last;
-    return Scaffold(
+    return CustomBackground(
+      showAppBar: false,
+      applyBottomInset: false,
       backgroundColor: colorScheme.primary,
-      body: Center(
+      child: Center(
         child: FadeTransition(
           opacity: _animation,
           child: ScaleTransition(
