@@ -44,6 +44,7 @@ class ProductCard extends StatelessWidget {
                     imageUrl: product.featuredImage?.url ?? '',
                     placeholderName: product.title,
                     borderRadius: AppDimensions.cardRadius,
+                    backgroundColor: AppColors.surface,
                   ),
                   if (soldOut) const _SoldOutBadge(),
                 ],
@@ -78,7 +79,7 @@ class _SoldOutBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.black.withValues(alpha: 0.55),
+        color: AppColors.white.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
       ),
       child: Center(

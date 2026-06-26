@@ -103,7 +103,10 @@ class _BannerSlide extends StatelessWidget {
                   ),
                   if (banner.ctaLabel.isNotEmpty) ...[
                     const SizedBox(height: AppSpacing.md),
-                    CustomButton.secondary(
+                    CustomButton.primary(
+                      // foregroundColor: AppColors.black,
+                      // backgroundColor: AppColors.white,
+                      borderRadius: 34,
                       label: banner.ctaLabel,
                       width: AppDimensions.retryButtonWidth,
                       onPressed: onCta == null ? null : () => onCta!(banner),

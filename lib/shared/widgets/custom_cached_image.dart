@@ -25,6 +25,7 @@ class CustomCachedImage extends StatelessWidget {
     this.width,
     this.fit = BoxFit.cover,
     this.borderRadius,
+    this.backgroundColor,
   });
 
   final String imageUrl;
@@ -36,13 +37,17 @@ class CustomCachedImage extends StatelessWidget {
   final BoxFit fit;
   final double? borderRadius;
 
+  /// Fill painted behind the image. Pair with [BoxFit.contain] to turn the
+  /// inevitable letterbox into an intentional tile background.
+  final Color? backgroundColor;
+
   @override
   Widget build(BuildContext context) {
     // Only http(s) URLs are fetchable; relative paths crash the codec.
     final url = imageUrl.trim();
     final isFetchable = url.startsWith('http://') || url.startsWith('https://');
 
-    final Widget image = isFetchable
+    final Widget content = isFetchable
         ? CachedNetworkImage(
             imageUrl: url,
             fit: fit,
@@ -56,6 +61,10 @@ class CustomCachedImage extends StatelessWidget {
             ),
           )
         : _Placeholder(height: height, width: width, name: placeholderName);
+
+    final image = backgroundColor == null
+        ? content
+        : ColoredBox(color: backgroundColor!, child: content);
 
     if (borderRadius == null) return image;
     return ClipRRect(

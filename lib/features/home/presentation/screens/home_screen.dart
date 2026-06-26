@@ -67,7 +67,11 @@ class _HomeContent extends ConsumerWidget {
             child: HomeSearchBar(hintText: 'Search our collection'),
           ),
           if (home.banners.isNotEmpty)
-            HomeBannerCarousel(banners: home.banners),
+            HomeBannerCarousel(
+              banners: home.banners,
+              // TODO(home): route to banner.ctaCollectionHandle's collection.
+              onCta: (_) {},
+            ),
           for (final collection in home.collections) ...[
             const SizedBox(height: AppSpacing.xl),
             CollectionSection(collection: collection),
