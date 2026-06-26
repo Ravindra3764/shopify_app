@@ -8,11 +8,13 @@ Guidance for Claude (and developers) working in this repository. Read this befor
 
 - **App**: Multi-tenant, white-label e-commerce app built in Flutter. One codebase, reskinned per client (the "tenant") via configuration — never via per-client code forks.
 - **Backend**: Shopify **Storefront API** (GraphQL). We do **not** use the Admin API from the app. Storefront access tokens are public-scope tokens and are safe to ship in the client, but they are still treated as per-tenant config (see §3).
-- **State management**: **Riverpod** with code generation (`riverpod_generator` / `riverpod_annotation`). The standard async primitive is **`AsyncNotifier`** (via `@riverpod` annotated classes). See §2.
-- **Targets**: iOS + Android. Code must follow Flutter/Dart industry best practices and pass analysis with zero warnings.
+- **State management**: **Riverpod, no code generation.** Hand-write providers with `Provider` / `NotifierProvider` / `AsyncNotifierProvider`. The standard async primitive is a class extending **`AsyncNotifier`**; mutable UI state extends **`Notifier`**. No `@riverpod`, no `riverpod_generator`, no `build_runner`. See §7.
+- **Models / config**: plain immutable classes (`final` fields + `const` constructor + hand-written `fromJson` / `fromEnv`). **No freezed, no json_serializable, no codegen anywhere in this repo.**
+- **Tenant config**: loaded from a bundled **`.env`** file via `flutter_dotenv` (not JSON assets, not `--dart-define`). See §3.
+- **Targets**: iOS + Android. Code must follow Flutter/Dart best practices and pass `flutter analyze` with zero issues under `very_good_analysis`.
 - **Dart/Flutter**: Dart SDK `^3.10.4`. Use modern language features (records, patterns, sealed classes, `switch` expressions).
 
-> The repo currently contains only the Flutter starter (`lib/main.dart` counter app). The structure below is the **target architecture**. When you scaffold new code, follow it exactly.
+> The scaffold described below is **already in place** (`lib/core/theme`, `lib/config`, `lib/providers`, `lib/bootstrap.dart`, `lib/app.dart`). Extend it; follow the established patterns exactly.
 
 ---
 
@@ -26,9 +28,9 @@ Inside each feature we still separate **data / domain / presentation** so busine
 
 ```
 lib/
-├── main.dart                  # Thin: bootstrap → runApp(ProviderScope(...))
-├── bootstrap.dart             # Loads AppConfig, sets up ProviderScope overrides, error zone
-├── app.dart                   # Root MaterialApp.router, theme wiring
+├── main.dart                  # Thin: void main() => bootstrap();
+├── bootstrap.dart             # Loads .env → AppConfig, AppColors.init, ProviderScope override
+├── app.dart                   # Root MaterialApp, theme wiring (router added later)
 │
 ├── core/                      # Cross-cutting, feature-agnostic
 │   ├── constants/             # App-wide constants (durations, keys, regex)
@@ -40,16 +42,15 @@ lib/
 │   └── result/                # Result/Either type for typed error handling
 │
 ├── config/                    # White-label configuration (§3)
-│   ├── app_config.dart        # AppConfig model (freezed)
-│   ├── feature_flags.dart     # FeatureFlags model
-│   ├── config_repository.dart # Loads + parses config
-│   └── flavors/               # Per-tenant config payloads (assets or .env)
+│   ├── app_config.dart        # AppConfig — plain immutable, AppConfig.fromEnv
+│   ├── feature_flags.dart     # FeatureFlags — plain, FeatureFlags.fromEnv
+│   └── config_repository.dart # Loads .env via flutter_dotenv, builds AppConfig
 │
 ├── shopify/                   # Storefront API layer (§6)
 │   ├── client/                # ShopifyClient wrapper, GraphQL setup
 │   ├── queries/               # One file per domain: products, collections, cart…
 │   ├── mutations/             # cart_create, cart_lines_add, customer_login…
-│   └── models/                # Storefront DTOs (freezed + json_serializable)
+│   └── models/                # Storefront DTOs (plain immutable + fromJson)
 │
 ├── features/
 │   ├── auth/
@@ -89,74 +90,78 @@ lib/
 | Members, locals, params | `camelCase` | `unitPrice`, `addToCart()` |
 | Constants | `camelCase` (lowerCamel, Dart style) | `defaultPageSize` |
 | Riverpod providers | `<noun>Provider` | `cartProvider`, `appConfigProvider` |
-| Generated notifier class | `<Noun>Notifier` → exposes `<noun>Provider` | `class CartNotifier` → `cartProvider` |
+| Notifier class | `<Noun>Notifier` → exposes `<noun>Provider` | `class CartNotifier` → `final cartProvider` |
 | Repository interface / impl | `XRepository` / `XRepositoryImpl` | `CartRepository` / `CartRepositoryImpl` |
-| Freezed model | noun, no suffix | `Product`, `CartLine` |
+| Model / entity | noun, no suffix | `Product`, `CartLine` |
 | GraphQL DTO (if distinct from entity) | `XDto` | `ProductDto` |
 | Screens | `XScreen` | `CartScreen` |
-| Generated files | `*.g.dart`, `*.freezed.dart` | committed, never hand-edited |
 
 ---
 
 ## 3. White-Label Configuration System
 
-The same binary must reskin per tenant **without changing any feature code**. All tenant-specific values flow through a single `AppConfig`.
+The same binary reskins per tenant **without changing any feature code**. All tenant-specific values live in the bundled **`.env`** file and flow through a single immutable `AppConfig`.
 
-### Single source of config
+### `.env` (active tenant — swap this file per tenant)
+
+```env
+APP_NAME=Acme Store
+FONT_FAMILY=Monorope
+SHOPIFY_DOMAIN=acme.myshopify.com
+STOREFRONT_ACCESS_TOKEN=replace_me
+STOREFRONT_API_VERSION=2025-01
+PRIMARY_COLOR=#086C4C        # only the brand primary varies per tenant
+SECONDARY_COLOR=#625B71
+ACCENT_COLOR=#7D5260
+LOGO_ASSET=assets/images/logo.png
+WISHLIST_ENABLED=true
+REVIEWS_ENABLED=false
+SEARCH_ENABLED=true
+GUEST_CHECKOUT_ENABLED=false
+```
+
+`.env` is declared under `flutter: assets:` in `pubspec.yaml` so it is bundled.
+
+### Single source of config (plain immutable, no codegen)
 
 ```dart
 // config/app_config.dart
-@freezed
-class AppConfig with _$AppConfig {
-  const factory AppConfig({
-    required String appName,
-    required String fontFamily,
+class AppConfig {
+  const AppConfig({
+    required this.appName,
+    required this.fontFamily,
+    required this.shopifyDomain,
+    required this.storefrontAccessToken,
+    required this.storefrontApiVersion,
+    required this.primaryColorHex,
+    required this.secondaryColorHex,
+    required this.accentColorHex,
+    required this.logoAsset,
+    required this.features,
+  });
 
-    // Shopify (per tenant)
-    required String shopifyDomain,          // e.g. acme.myshopify.com
-    required String storefrontAccessToken,  // public Storefront token
-    required String storefrontApiVersion,   // e.g. 2025-01
+  /// Builds from parsed .env entries; throws StateError (fail-fast) if a
+  /// required key is missing.
+  factory AppConfig.fromEnv(Map<String, String> env) { /* required(...) */ }
 
-    // Theming (hex strings parsed into Color in AppTheme)
-    required String primaryColorHex,
-    required String secondaryColorHex,
-    required String accentColorHex,
-
-    // Branding assets
-    required String logoAsset,
-    required List<OnboardingSlide> onboarding,
-
-    // Feature toggles
-    required FeatureFlags features,
-  }) = _AppConfig;
-
-  factory AppConfig.fromJson(Map<String, dynamic> json) =>
-      _$AppConfigFromJson(json);
-}
-
-@freezed
-class FeatureFlags with _$FeatureFlags {
-  const factory FeatureFlags({
-    @Default(true) bool wishlistEnabled,
-    @Default(false) bool reviewsEnabled,
-    @Default(true) bool searchEnabled,
-    @Default(false) bool guestCheckoutEnabled,
-  }) = _FeatureFlags;
-
-  factory FeatureFlags.fromJson(Map<String, dynamic> json) =>
-      _$FeatureFlagsFromJson(json);
+  final String appName;
+  // ... final fields ...
+  final FeatureFlags features;
 }
 ```
 
+`FeatureFlags` is likewise plain, with `FeatureFlags.fromEnv(env)` reading `"true"`/`"false"`.
+
 ### Loading at startup
 
-Config is loaded **before `runApp`**, then injected via a Riverpod override so it is synchronously available everywhere (no `AsyncValue` ceremony for config reads).
+Config is loaded **before `runApp`** by `ConfigRepository` (wraps `flutter_dotenv`), then injected via a Riverpod override so it is synchronously available everywhere — no `AsyncValue` for config reads.
 
 ```dart
 // bootstrap.dart
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final config = await ConfigRepository().load(); // reads flavor asset/.env
+  final config = await const ConfigRepository().load(); // dotenv.load → AppConfig.fromEnv
+  AppColors.init(config);                               // brand colors → palette (§4)
   runApp(
     ProviderScope(
       overrides: [appConfigProvider.overrideWithValue(config)],
@@ -165,21 +170,18 @@ Future<void> bootstrap() async {
   );
 }
 
-// providers/config_providers.dart
-@riverpod
-AppConfig appConfig(Ref ref) => throw UnimplementedError(); // overridden in bootstrap
-
-@riverpod
-FeatureFlags featureFlags(Ref ref) => ref.watch(appConfigProvider).features;
+// providers/config_providers.dart  (plain providers, no @riverpod)
+final appConfigProvider = Provider<AppConfig>(
+  (ref) => throw UnimplementedError('overridden in bootstrap()'),
+);
+final featureFlagsProvider =
+    Provider<FeatureFlags>((ref) => ref.watch(appConfigProvider).features);
 ```
 
-`ConfigRepository.load()` resolves the active tenant from a compile-time flavor (`--dart-define=FLAVOR=acme`) and reads the matching `config/flavors/<flavor>.json` asset (or a remote config override that falls back to the bundled asset).
+### Multiple tenants
 
-### Multiple tenants via flavors
-
-- Each tenant = a **Flutter flavor** (`acme`, `globex`, …) configured in Android `build.gradle.kts` product flavors and iOS schemes/configs.
-- Tenant config selected at build time with `--dart-define-from-file=config/flavors/acme.env` (or `--dart-define=FLAVOR=acme`).
-- Bundle ID / application ID, app name, and launcher icon differ per flavor; everything else differs only through `AppConfig`.
+- Each tenant has its own `.env` (and its own launcher icon / app id). Build a tenant by swapping `.env` (e.g. per Flutter flavor or a CI copy step) before `flutter build`.
+- App name, brand primary color, Shopify store, logo, and feature flags differ **only** through `.env` → `AppConfig`.
 - **Rule**: never branch feature logic on tenant name (`if (tenant == 'acme')`). Branch only on `FeatureFlags` or config values.
 
 ---
@@ -268,7 +270,7 @@ Required components (non-exhaustive):
 | `RatingStars` | read-only + interactive |
 | `SectionHeader` | title + optional "See all" action |
 | `EmptyStateView` | icon, message, optional CTA |
-| `LoadingShimmer` | skeleton placeholders (list/grid/card) |
+| `LoadingShimmer` | skeleton placeholders — **one variant per layout**: `.card`, `.grid`, `.list`, `.productDetail`. Shape must match the real content it replaces, not a generic box. Every async screen reuses these for its `loading:` state (see §7). |
 | `ErrorView` | message + retry callback |
 
 Example contract:
@@ -283,7 +285,8 @@ Example contract:
 /// CustomButton.primary(label: 'Add to cart', isLoading: adding, onPressed: addToCart)
 /// ```
 class CustomButton extends StatelessWidget {
-  const CustomButton.primary({ /* ... */ });
+  const CustomButton.prim
+  ary({ /* ... */ });
   const CustomButton.outline({ /* ... */ });
   // ...
 }
@@ -415,6 +418,7 @@ return productsAsync.when(
 - **No business logic in widgets.** Widgets read providers and render. All fetching, mutation, validation, and mapping live in notifiers/repositories.
 - **No direct repository/network calls from widgets** — go through a provider.
 - Loading and error states are **always** surfaced via `AsyncValue` and rendered with `LoadingShimmer` / `ErrorView`. No unhandled error paths.
+- **Skeleton loading is mandatory.** Every content `loading:` branch renders a **skeleton shimmer that mirrors the real content layout** (a `ProductGrid` loads into a grid of card skeletons, a list into row skeletons, a detail page into its block skeleton). A bare centered `CircularProgressIndicator` is **not** acceptable for content loading — use it only for inline/button spinners. Each screen ships a matching `LoadingShimmer` variant.
 - Side-effect mutations (add to cart, login) live in notifier methods; widgets call `ref.read(xProvider.notifier).method()`.
 - Dispose/auto-dispose is the default (codegen autoDispose). Use `ref.keepAlive()` deliberately when caching is needed.
 
