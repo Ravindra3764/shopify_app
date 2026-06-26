@@ -35,7 +35,7 @@ lib/
 ├── core/                      # Cross-cutting, feature-agnostic
 │   ├── constants/             # App-wide constants (durations, keys, regex)
 │   ├── error/                 # Failure types, exception → Failure mapping
-│   ├── network/              # GraphQL transport, interceptors, connectivity
+│   ├── network/              # ApiClient (Dio Storefront transport), interceptors
 │   ├── routing/               # GoRouter config, route names, guards
 │   ├── theme/                 # AppTheme, AppColors, AppSpacing, AppTextStyles (§4)
 │   ├── utils/                 # Pure helpers, extensions, formatters
@@ -46,8 +46,7 @@ lib/
 │   ├── feature_flags.dart     # FeatureFlags — plain, FeatureFlags.fromEnv
 │   └── config_repository.dart # Loads .env via flutter_dotenv, builds AppConfig
 │
-├── shopify/                   # Storefront API layer (§6)
-│   ├── client/                # ShopifyClient wrapper, GraphQL setup
+├── shopify/                   # Storefront API layer (§6) — client is core/network/api_client.dart
 │   ├── queries/               # One file per domain: products, collections, cart…
 │   ├── mutations/             # cart_create, cart_lines_add, customer_login…
 │   └── models/                # Storefront DTOs (plain immutable + fromJson)
@@ -75,7 +74,7 @@ lib/
 │
 └── providers/                 # Global/app-level providers only
     ├── config_providers.dart  # appConfigProvider, featureFlagsProvider
-    ├── shopify_providers.dart  # shopifyClientProvider, repository providers
+    ├── shopify_providers.dart  # apiClientProvider, repository providers
     └── router_provider.dart
 ```
 
@@ -298,31 +297,31 @@ class CustomButton extends StatelessWidget {
 
 ### Client wrapper
 
-`ShopifyClient` wraps the GraphQL client, injects the Storefront token + API version from `AppConfig`, and is the only place HTTP/GraphQL details live.
+`ApiClient` (Dio-based) wraps the GraphQL transport, injects the Storefront token + API version from `AppConfig`, and is the only place HTTP/GraphQL details live. It lives at `core/network/api_client.dart`.
 
 ```dart
-// shopify/client/shopify_client.dart
-class ShopifyClient {
-  ShopifyClient({required AppConfig config, http.Client? httpClient}) // DI for tests
-      : _endpoint = Uri.https(
-          config.shopifyDomain,
-          '/api/${config.storefrontApiVersion}/graphql.json',
-        ),
-        _token = config.storefrontAccessToken,
-        _http = httpClient ?? http.Client();
+// core/network/api_client.dart
+class ApiClient {
+  ApiClient({required AppConfig config, Dio? dio}) // DI for tests
+      : _dio = dio ?? _buildDio(config);
+
+  // _buildDio sets baseUrl = https://{shopifyDomain}/api/{version}/graphql.json
+  // headers:
+  //   'Content-Type': 'application/json'
+  //   'X-Shopify-Storefront-Access-Token': config.storefrontAccessToken
+  // kDebugMode → LogInterceptor.
 
   Future<Map<String, dynamic>> query(String document, {Map<String, dynamic>? variables}) {
-    // POST with headers:
-    //   'X-Shopify-Storefront-Access-Token': _token
-    //   'Content-Type': 'application/json'
-    // Throws ShopifyException → mapped to Failure in repository.
+    // POST {query, variables}; returns `data`.
+    // Throws ShopifyException on transport error, non-2xx, empty/malformed
+    // body, or non-empty GraphQL `errors` → mapped to Failure in repository.
   }
 }
 
-// providers/shopify_providers.dart
-@riverpod
-ShopifyClient shopifyClient(Ref ref) =>
-    ShopifyClient(config: ref.watch(appConfigProvider));
+// providers/shopify_providers.dart  (plain provider, no codegen)
+final apiClientProvider = Provider<ApiClient>(
+  (ref) => ApiClient(config: ref.watch(appConfigProvider)),
+);
 ```
 
 ### Query/mutation file convention
@@ -342,12 +341,12 @@ GraphQL documents are `const String` named after the operation (`kGetProductsQue
 
 ### Models
 
-- DTOs in `shopify/models/` are **freezed + json_serializable** with `fromJson`/`toJson`. Never hand-write parsing.
+- DTOs in `shopify/models/` are **plain immutable classes** (`final` fields + `const` constructor + hand-written `fromJson`). **No freezed, no json_serializable.** Add a `copyWith` by hand where mutation-by-copy is needed.
 - Map Shopify money correctly (`amount` + `currencyCode`); don't store prices as raw doubles without currency.
 
 ### Repository pattern (mandatory)
 
-UI and notifiers **never** call `ShopifyClient` or GraphQL directly. They depend on a repository **interface** in `domain/`; the `data/` layer implements it against Shopify and maps DTO → entity → `Failure`.
+UI and notifiers **never** call `ApiClient` or GraphQL directly. They depend on a repository **interface** in `domain/`; the `data/` layer implements it against Shopify and maps DTO → entity → `Failure`.
 
 ```dart
 // features/cart/domain/cart_repository.dart
@@ -359,8 +358,8 @@ abstract interface class CartRepository {
 // features/cart/data/cart_repository_impl.dart
 class CartRepositoryImpl implements CartRepository {
   CartRepositoryImpl(this._client);
-  final ShopifyClient _client;
-  // calls _client.query/mutate, maps responses, catches ShopifyException → Failure
+  final ApiClient _client;
+  // calls _client.query, maps responses, catches ShopifyException → Failure
 }
 ```
 
@@ -374,17 +373,16 @@ This keeps the backend swappable — Shopify could be replaced without touching 
 
 | Use case | Provider type |
 |---|---|
-| Async data from a repository (products, cart, orders) | `@riverpod` class extending **`AsyncNotifier`** / `FamilyAsyncNotifier` |
-| Synchronous derived/config values | `@riverpod` function provider |
-| Mutable local UI state (form, filters, selected tab) | `@riverpod` class extending **`Notifier`** |
-| Plain dependency (client, repo) | `@riverpod` function provider |
+| Async data from a repository (products, cart, orders) | hand-written class extending **`AsyncNotifier`** / `FamilyAsyncNotifier`, exposed via `AsyncNotifierProvider(.family)` |
+| Synchronous derived/config values | plain `Provider` |
+| Mutable local UI state (form, filters, selected tab) | hand-written class extending **`Notifier`**, exposed via `NotifierProvider` |
+| Plain dependency (client, repo) | plain `Provider` |
 
-Use **code generation** (`@riverpod`) everywhere. Do not hand-write `StateNotifierProvider`/`Provider` constructors. `StateNotifier` is legacy — **do not** introduce it in new code; use `Notifier`/`AsyncNotifier`.
+**No code generation.** Hand-write providers — no `@riverpod`, no `riverpod_generator`, no `build_runner`. `StateNotifier` is legacy — **do not** introduce it; use `Notifier`/`AsyncNotifier`. Use `.autoDispose` explicitly where disposal is wanted; `ref.keepAlive()` when caching is needed.
 
 ```dart
 // features/product_listing/presentation/providers/products_provider.dart
-@riverpod
-class Products extends _$Products {
+class ProductsNotifier extends AsyncNotifier<List<Product>> {
   @override
   Future<List<Product>> build() async {
     final repo = ref.watch(productRepositoryProvider);
@@ -394,7 +392,9 @@ class Products extends _$Products {
 
   Future<void> loadMore() async { /* ... */ }
 }
-// → exposes `productsProvider`
+
+final productsProvider =
+    AsyncNotifierProvider<ProductsNotifier, List<Product>>(ProductsNotifier.new);
 ```
 
 ### UI consumption — `AsyncValue.when`
@@ -420,14 +420,14 @@ return productsAsync.when(
 - Loading and error states are **always** surfaced via `AsyncValue` and rendered with `LoadingShimmer` / `ErrorView`. No unhandled error paths.
 - **Skeleton loading is mandatory.** Every content `loading:` branch renders a **skeleton shimmer that mirrors the real content layout** (a `ProductGrid` loads into a grid of card skeletons, a list into row skeletons, a detail page into its block skeleton). A bare centered `CircularProgressIndicator` is **not** acceptable for content loading — use it only for inline/button spinners. Each screen ships a matching `LoadingShimmer` variant.
 - Side-effect mutations (add to cart, login) live in notifier methods; widgets call `ref.read(xProvider.notifier).method()`.
-- Dispose/auto-dispose is the default (codegen autoDispose). Use `ref.keepAlive()` deliberately when caching is needed.
+- Reach for `.autoDispose` on providers that shouldn't outlive their last listener; use `ref.keepAlive()` deliberately when caching is needed.
 
 ---
 
 ## 8. Coding Standards
 
 - **Null safety**: no `!` bang operator except where provably non-null with a comment; prefer pattern matching and `?.`/`??`.
-- **Immutability**: models and state are **freezed**; use `sealed`/`final` classes. Never mutate state in place — copy with `copyWith`.
+- **Immutability**: models and state are **plain immutable classes** (`final` fields + `const` constructor); use `sealed`/`final` classes where they fit. Never mutate state in place — copy with a hand-written `copyWith`.
 - **Typed errors**: a single `Failure` hierarchy (sealed class) — `NetworkFailure`, `ShopifyFailure`, `AuthFailure`, `UnknownFailure`. Repositories return `Result<T, Failure>` (or `Either`). **No silent catches** (`catch (_) {}` is forbidden); every catch maps to a `Failure` or rethrows.
 - **Async**: always `await` futures or explicitly handle them; no unawaited fire-and-forget (lint: `unawaited_futures`, `discarded_futures`). Use `unawaited()` when intentional.
 - **Comments**: doc comments (`///`) on public APIs and shared widgets. Inline comments only where logic is non-obvious — no narrating obvious code.
@@ -443,8 +443,6 @@ analyzer:
   language:
     strict-casts: true
     strict-raw-types: true
-  errors:
-    invalid_annotation_target: ignore   # freezed/json noise
 linter:
   rules:
     public_member_api_docs: false        # enable on shared/ if desired
@@ -456,9 +454,9 @@ A change that adds analyzer warnings is not done.
 
 ## 9. Testing Expectations
 
-- **Repositories & notifiers**: unit tests are required. Mock the `ShopifyClient` (e.g. `mocktail`) and assert DTO→entity mapping, `Failure` mapping, and notifier state transitions (`loading → data`, `loading → error`).
+- **Repositories & notifiers**: unit tests are required. Mock the `ApiClient` (e.g. `mocktail`) and assert DTO→entity mapping, `Failure` mapping, and notifier state transitions (`loading → data`, `loading → error`).
 - **Shared widgets**: widget tests for each component in `shared/widgets/` covering variants and states (loading/disabled/error).
-- **Shopify mocking**: never hit the real API in tests. Inject a fake/mock `ShopifyClient` returning canned JSON fixtures (store fixtures under `test/fixtures/`). Use `ProviderContainer` with overrides to supply mocks to providers.
+- **Shopify mocking**: never hit the real API in tests. Inject a fake/mock `ApiClient` returning canned JSON fixtures (store fixtures under `test/fixtures/`). Use `ProviderContainer` with overrides to supply mocks to providers.
 - Aim for meaningful coverage on `data/` and `presentation/providers/`; UI screens get smoke tests.
 
 ```dart
@@ -484,9 +482,7 @@ flutter pub get
 # Run a tenant flavor
 flutter run --flavor <flavor> --dart-define-from-file=config/flavors/<flavor>.env
 
-# Code generation (freezed, json_serializable, riverpod_generator)
-dart run build_runner build --delete-conflicting-outputs
-dart run build_runner watch  --delete-conflicting-outputs   # during dev
+# No code generation in this repo — there is no build_runner step.
 
 # Tests
 flutter test
@@ -504,31 +500,25 @@ flutter build ipa    --flavor <flavor> --dart-define-from-file=config/flavors/<f
 ### Definition of done for any change
 1. `flutter analyze` clean (zero warnings under `very_good_analysis`).
 2. `dart format` clean.
-3. `build_runner` regenerated if models/providers changed (generated files committed).
-4. Tests added/updated and `flutter test` green.
-5. No hardcoded colors/spacing/text styles, no business logic in widgets, no direct GraphQL outside repositories.
+3. Tests added/updated and `flutter test` green.
+4. No hardcoded colors/spacing/text styles, no business logic in widgets, no direct GraphQL outside repositories.
 
 ---
 
-## Dependencies to add (target)
+## Dependencies
 
-These are not yet in `pubspec.yaml` — add as the architecture is built out:
+No-codegen stack — no `build_runner`, `freezed`, `json_serializable`, or `riverpod_generator`. Current `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  flutter_riverpod: ^2.x
-  riverpod_annotation: ^2.x
-  go_router: ^14.x
-  freezed_annotation: ^2.x
-  json_annotation: ^4.x
-  http: ^1.x            # or graphql_flutter/ferry if a full GraphQL client is preferred
-  intl: ^0.19.x
+  flutter_riverpod: ^2.6.1
+  go_router: ^14.6.2
+  dio: ^5.7.0            # Storefront GraphQL transport (ApiClient)
+  flutter_dotenv: ^5.2.1 # tenant .env loading
+  flutter_svg: ^2.3.0
+  intl: ^0.19.0
 
 dev_dependencies:
-  build_runner: ^2.x
-  riverpod_generator: ^2.x
-  freezed: ^2.x
-  json_serializable: ^6.x
-  very_good_analysis: ^6.x
-  mocktail: ^1.x
+  very_good_analysis: ^6.0.0
+  mocktail: ^1.0.4
 ```
