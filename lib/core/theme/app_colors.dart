@@ -39,6 +39,9 @@ abstract final class AppColors {
   static const Color shimmerBase = Color(0xFFEFEFEF);
   static const Color shimmerHighlight = Color(0xFFF7F7F7);
 
+  /// Dark overlay for legible text over imagery (banners).
+  static const Color scrim = Color(0x99000000);
+
   // --- Semantic (shared) -----------------------------------------------------
 
   static const Color success = Color(0xFF28B446);

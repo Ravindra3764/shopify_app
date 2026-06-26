@@ -19,7 +19,18 @@ abstract final class AppDimensions {
   static const double radiusMd = 12;
   static const double radiusLg = 20;
 
+  static const double cardRadius = 8;
+
   static const double buttonHeight = 52;
   static const double iconSm = 16;
   static const double iconMd = 24;
+
+  static const double retryButtonWidth = 160;
+
+  /// Heights for home content blocks.
+  static const double bannerHeight = 460;
+  static const double productCardWidth = 200;
+  static const double productCardHeight = 260;
+  static const double productImageHeight = 200;
+  static const double categoryTileHeight = 150;
 }

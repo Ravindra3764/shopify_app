@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for Shopify Storefront API (HTTPS) in all build types. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="shopify_app"
         android:name="${applicationName}"
