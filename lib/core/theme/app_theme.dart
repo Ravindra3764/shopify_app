@@ -4,12 +4,6 @@ import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/core/theme/app_text_styles.dart';
 
-/// Builds the app [ThemeData] from tenant [AppConfig].
-///
-/// The tenant primary color (from `.env`, via [AppColors.init]) drives the
-/// scheme and primary buttons. All neutrals/semantic colors come from the
-/// shared [AppColors] palette so every tenant gets a consistent e-commerce
-/// look. Call [AppColors.init] before this.
 abstract final class AppTheme {
   static ThemeData light(AppConfig config) {
     final scheme = ColorScheme.fromSeed(

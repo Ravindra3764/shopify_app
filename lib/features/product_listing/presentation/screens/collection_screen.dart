@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shopify_app/config/app_config.dart';
 import 'package:shopify_app/core/error/failure.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/product_listing/presentation/providers/collection_providers.dart';

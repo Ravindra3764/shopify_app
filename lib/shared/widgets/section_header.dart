@@ -26,8 +26,10 @@ class SectionHeader extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: textTheme.titleMedium?.copyWith(
+            style: textTheme.titleLarge?.copyWith(
               color: AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+              fontSize: 24,
             ),
             overflow: TextOverflow.ellipsis,
           ),
