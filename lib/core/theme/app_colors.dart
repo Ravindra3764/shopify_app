@@ -34,9 +34,9 @@ abstract final class AppColors {
   static const Color surface = Color(0xFFFFFFFF);
   static const Color border = Color(0xFFDDD8D0);
   static const Color divider = Color(0xFFECECEC);
-  static const Color boxFill = Color(0xFFF6EFEC);
+  static const Color boxFill = Color(0xFFF7F3F2);
   static const Color disabled = Color(0xFFE5E5EA);
-  static Color shimmerBase = primary.withValues(alpha: 0.00001);
+  static const Color shimmerBase = Color(0xFFEFEFEF);
   static const Color shimmerHighlight = Color(0xFFF7F7F7);
 
   /// Dark overlay for legible text over imagery (banners).

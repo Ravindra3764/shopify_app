@@ -5,21 +5,11 @@ import 'package:shopify_app/shared/widgets/custom_cached_image.dart';
 import 'package:shopify_app/shared/widgets/price_tag.dart';
 import 'package:shopify_app/shopify/models/product.dart';
 
-/// Product tile used in home/listing grids.
-///
-/// Shows the featured image, title, and a [PriceTag] (with sale strikethrough).
-/// Tapping calls [onTap]. Sold-out products get a muted "Sold out" marker.
-///
-/// ```dart
-/// ProductCard(product: product, onTap: () => openProduct(product));
-/// ```
 class ProductCard extends StatelessWidget {
   const ProductCard({required this.product, super.key, this.onTap, this.width});
 
   final Product product;
   final VoidCallback? onTap;
-
-  /// Fixed card width (for horizontal lists). Null = fill parent.
   final double? width;
 
   @override
