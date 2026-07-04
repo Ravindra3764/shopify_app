@@ -14,6 +14,7 @@ class ProductImageGallery extends StatefulWidget {
     this.onBack,
     this.isWishlisted = false,
     this.onWishlistToggle,
+    this.selectedIndex,
   });
 
   final List<ShopifyImage> images;
@@ -25,6 +26,10 @@ class ProductImageGallery extends StatefulWidget {
   final bool isWishlisted;
   final VoidCallback? onWishlistToggle;
 
+  /// Page to show, driven by the caller (e.g. the image tied to the
+  /// selected color/size variant). `null` leaves the current page alone.
+  final int? selectedIndex;
+
   @override
   State<ProductImageGallery> createState() => _ProductImageGalleryState();
 }
@@ -32,6 +37,35 @@ class ProductImageGallery extends StatefulWidget {
 class _ProductImageGalleryState extends State<ProductImageGallery> {
   final _controller = PageController();
   int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final target = widget.selectedIndex;
+    if (target != null && target != 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _controller.hasClients) {
+          _controller.jumpToPage(target);
+          setState(() => _page = target);
+        }
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ProductImageGallery oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final target = widget.selectedIndex;
+    if (target != null &&
+        target != oldWidget.selectedIndex &&
+        target != _page) {
+      _controller.animateToPage(
+        target,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
 
   @override
   void dispose() {

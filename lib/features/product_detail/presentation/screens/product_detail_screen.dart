@@ -92,6 +92,7 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
                 ProductImageGallery(
                   images: detail.images,
                   placeholderName: detail.title,
+                  selectedIndex: detail.indexOfImage(variant?.image),
                   onBack: () => context.pop(),
                   isWishlisted: _isWishlisted,
                   onWishlistToggle: featureFlags.wishlistEnabled

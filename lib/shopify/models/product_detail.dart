@@ -105,17 +105,10 @@ class ProductDetail {
   final List<ProductOption> options;
   final List<ProductVariant> variants;
 
-  /// 0-5 average rating, from a `reviews.rating` metafield. `null` when the
-  /// storefront has no reviews app/metafield configured.
   final double? averageRating;
 
   /// Review count, from a `reviews.rating_count` metafield.
   final int? reviewsCount;
-
-  /// Color descriptors from Shopify's `shopify.color-pattern` category
-  /// metafield — display-only taxonomy data, distinct from any real `Color`
-  /// entry in [options]. Empty when the merchant hasn't set it.
-  // final List<ProductColorSwatch> categoryColors;
 
   /// Whether [compareAtPrice] marks a genuine markdown over [price].
   bool get isOnSale =>
@@ -130,6 +123,15 @@ class ProductDetail {
       }
     }
     return null;
+  }
+
+  /// Index of [image] within [images], matched by URL — `null` if [image]
+  /// is `null` or isn't part of the product gallery (e.g. a variant with no
+  /// dedicated image).
+  int? indexOfImage(ShopifyImage? image) {
+    if (image == null) return null;
+    final index = images.indexWhere((candidate) => candidate.url == image.url);
+    return index == -1 ? null : index;
   }
 
   static double? _parseRating(Map<String, dynamic> json) {
