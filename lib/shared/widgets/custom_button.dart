@@ -9,15 +9,25 @@ enum _ButtonVariant { primary, secondary, outline }
 ///
 /// Three variants via named constructors — [CustomButton.primary],
 /// [CustomButton.secondary], [CustomButton.outline]. Shows a spinner and
-/// blocks taps while [isLoading]; pass `onPressed: null` to disable. Colors,
-/// spacing, and text style come from the theme — never hardcode them at the
-/// call site.
+/// blocks taps while [isLoading]; pass `onPressed: null` to disable. Each
+/// variant supplies sensible theme colors and an [AppDimensions.radiusMd]
+/// corner, but [backgroundColor], [foregroundColor], and [borderRadius] can
+/// override them per call site (overrides apply only while enabled).
 ///
 /// ```dart
 /// CustomButton.primary(
 ///   label: 'Add to cart',
 ///   isLoading: adding,
 ///   onPressed: addToCart,
+/// );
+///
+/// // White pill with dark text, fully rounded (e.g. over a banner photo).
+/// CustomButton.secondary(
+///   label: 'Shop Now',
+///   backgroundColor: AppColors.white,
+///   foregroundColor: AppColors.textPrimary,
+///   borderRadius: AppDimensions.buttonHeight / 2,
+///   onPressed: shop,
 /// );
 /// ```
 class CustomButton extends StatelessWidget {
@@ -31,6 +41,9 @@ class CustomButton extends StatelessWidget {
     this.trailingIcon,
     this.width,
     this.height = AppDimensions.buttonHeight,
+    this.backgroundColor,
+    this.foregroundColor,
+    this.borderRadius,
   }) : _variant = _ButtonVariant.primary;
 
   /// Filled secondary-brand button.
@@ -43,6 +56,9 @@ class CustomButton extends StatelessWidget {
     this.trailingIcon,
     this.width,
     this.height = AppDimensions.buttonHeight,
+    this.backgroundColor,
+    this.foregroundColor,
+    this.borderRadius,
   }) : _variant = _ButtonVariant.secondary;
 
   /// Outlined button with a transparent fill.
@@ -55,6 +71,9 @@ class CustomButton extends StatelessWidget {
     this.trailingIcon,
     this.width,
     this.height = AppDimensions.buttonHeight,
+    this.backgroundColor,
+    this.foregroundColor,
+    this.borderRadius,
   }) : _variant = _ButtonVariant.outline;
 
   /// Button label.
@@ -78,32 +97,47 @@ class CustomButton extends StatelessWidget {
   /// Button height.
   final double height;
 
+  /// Overrides the variant's fill (enabled state only).
+  final Color? backgroundColor;
+
+  /// Overrides the variant's label/icon color (enabled state only).
+  final Color? foregroundColor;
+
+  /// Corner radius. Defaults to [AppDimensions.radiusMd].
+  final double? borderRadius;
+
   final _ButtonVariant _variant;
 
   @override
   Widget build(BuildContext context) {
     final isEnabled = onPressed != null && !isLoading;
 
-    final backgroundColor = _backgroundColor(isEnabled);
-    final foregroundColor = _foregroundColor(isEnabled);
+    // Overrides win over variant defaults, but only while enabled — disabled
+    // buttons keep their muted styling for a consistent affordance.
+    final fillColor = isEnabled
+        ? (backgroundColor ?? _backgroundColor(isEnabled))
+        : _backgroundColor(isEnabled);
+    final labelColor = isEnabled
+        ? (foregroundColor ?? _foregroundColor(isEnabled))
+        : _foregroundColor(isEnabled);
     final borderColor = _borderColor(isEnabled);
-    const borderRadius = BorderRadius.all(
-      Radius.circular(AppDimensions.radiusMd),
+    final radius = BorderRadius.all(
+      Radius.circular(borderRadius ?? AppDimensions.radiusMd),
     );
 
     return SizedBox(
       width: width ?? double.infinity,
       height: height,
       child: Material(
-        color: backgroundColor,
-        borderRadius: borderRadius,
+        color: fillColor,
+        borderRadius: radius,
         child: InkWell(
           onTap: isEnabled ? onPressed : null,
-          borderRadius: borderRadius,
+          borderRadius: radius,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             decoration: BoxDecoration(
-              borderRadius: borderRadius,
+              borderRadius: radius,
               border: borderColor != null
                   ? Border.all(color: borderColor)
                   : null,
@@ -115,9 +149,7 @@ class CustomButton extends StatelessWidget {
                       height: AppDimensions.iconMd,
                       child: CircularProgressIndicator(
                         strokeWidth: _spinnerStroke,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          foregroundColor,
-                        ),
+                        valueColor: AlwaysStoppedAnimation<Color>(labelColor),
                       ),
                     )
                   : Row(
@@ -133,8 +165,9 @@ class CustomButton extends StatelessWidget {
                             textAlign: TextAlign.center,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.labelLarge
-                                ?.copyWith(color: foregroundColor),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.labelLarge?.copyWith(color: labelColor),
                           ),
                         ),
                         if (trailingIcon != null) ...[

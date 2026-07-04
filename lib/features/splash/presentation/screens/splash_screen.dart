@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shopify_app/Helper/assets_helper.dart';
-import 'package:shopify_app/features/home/presentation/screens/home_screen.dart';
+import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 
@@ -42,9 +43,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Future<void> _scheduleNavigation() async {
     await Future<void>.delayed(_splashDuration);
     if (!mounted) return;
-    await Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => const HomeScreen()),
-    );
+    context.go(AppRoutes.home);
   }
 
   @override
