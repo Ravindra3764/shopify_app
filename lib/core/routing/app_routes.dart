@@ -21,4 +21,14 @@ abstract final class AppRoutes {
   /// URL — see `CollectionScreen`.
   static String collectionPath(String handle) =>
       '/collection/${Uri.encodeComponent(handle)}';
+
+  /// Product detail; deep-link pattern `/product/:handle`.
+  static const String productDetail = '/product/:handle';
+
+  /// Route name used for `goNamed` / `pushNamed`.
+  static const String productDetailName = 'productDetail';
+
+  /// Builds a concrete product-detail location, e.g. `/product/noir-trench`.
+  static String productDetailPath(String handle) =>
+      '/product/${Uri.encodeComponent(handle)}';
 }

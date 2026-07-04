@@ -16,6 +16,14 @@ class LoadingShimmer extends StatelessWidget {
   /// Product grid skeleton: a 2-column grid of card placeholders.
   const LoadingShimmer.grid({Key? key}) : this._(_gridLayout, key: key);
 
+  /// Product-detail skeleton: gallery + title/price/options blocks.
+  const LoadingShimmer.productDetail({Key? key})
+    : this._(_productDetailLayout, key: key);
+
+  /// A single horizontal row of product-card placeholders, with no title —
+  /// for reuse under a real section header (e.g. related products).
+  const LoadingShimmer.row({Key? key}) : this._(_cardsRowLayout, key: key);
+
   final Widget Function(BuildContext) _builder;
 
   @override
@@ -52,6 +60,84 @@ class LoadingShimmer extends StatelessWidget {
     );
   }
 
+  static Widget _productDetailLayout(BuildContext context) {
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        const _Box(height: AppDimensions.productGalleryHeight, radius: 0),
+        Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _Box(
+                height: AppSpacing.md,
+                width: AppDimensions.shimmerShortWidth,
+                radius: AppDimensions.radiusSm,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const _Box(
+                height: AppSpacing.lg,
+                width: AppDimensions.shimmerTitleWidth,
+                radius: AppDimensions.radiusSm,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              const _Box(
+                height: AppSpacing.md,
+                width: AppDimensions.shimmerShortWidth,
+                radius: AppDimensions.radiusSm,
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Row(
+                children: [
+                  for (var i = 0; i < 3; i++)
+                    const Padding(
+                      padding: EdgeInsets.only(right: AppSpacing.sm),
+                      child: _Box(
+                        height: AppDimensions.swatchSize,
+                        width: AppDimensions.swatchSize,
+                        radius: AppDimensions.swatchSize,
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Row(
+                children: [
+                  for (var i = 0; i < 5; i++)
+                    const Padding(
+                      padding: EdgeInsets.only(right: AppSpacing.sm),
+                      child: _Box(
+                        height: AppDimensions.optionChipHeight,
+                        width: AppDimensions.swatchSize,
+                        radius: AppDimensions.radiusSm,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  static Widget _cardsRowLayout(BuildContext context) => _cardsRow();
+
+  static Widget _cardsRow() {
+    return SizedBox(
+      height: AppDimensions.productImageHeight,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        itemCount: 3,
+        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
+        itemBuilder: (_, _) =>
+            const _Box(width: AppDimensions.productCardWidth),
+      ),
+    );
+  }
+
   static Widget _row() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -65,17 +151,7 @@ class LoadingShimmer extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        SizedBox(
-          height: AppDimensions.productImageHeight,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            itemCount: 3,
-            separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
-            itemBuilder: (_, _) =>
-                const _Box(width: AppDimensions.productCardWidth),
-          ),
-        ),
+        _cardsRow(),
       ],
     );
   }

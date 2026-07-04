@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/features/home/presentation/screens/home_screen.dart';
+import 'package:shopify_app/features/product_detail/presentation/screens/product_detail_screen.dart';
 import 'package:shopify_app/features/product_listing/presentation/screens/collection_screen.dart';
 import 'package:shopify_app/features/splash/presentation/screens/splash_screen.dart';
 
@@ -29,6 +30,14 @@ GoRouter createRouter() {
           // it, so the screen falls back to the fetched collection name.
           final title = state.extra is String ? state.extra! as String : null;
           return CollectionScreen(handle: handle, title: title);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.productDetail,
+        name: AppRoutes.productDetailName,
+        builder: (context, state) {
+          final handle = state.pathParameters['handle'] ?? '';
+          return ProductDetailScreen(handle: handle);
         },
       ),
     ],

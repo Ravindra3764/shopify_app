@@ -27,4 +27,16 @@ abstract final class AppDimensions {
   static const double productCardHeight = 260;
   static const double productImageHeight = 200;
   static const double categoryTileHeight = 150;
+
+  /// Sizes for the product-detail screen.
+  static const double productGalleryHeight = 460;
+  static const double circleIconButtonSize = 36;
+  static const double galleryDotSize = 6;
+  static const double galleryDotActiveWidth = 18;
+  static const double swatchSize = 56;
+  static const double swatchRingWidth = 2;
+  static const double optionChipHeight = 44;
+  static const double quantityStepperWidth = 120;
+  static const double shimmerTitleWidth = 220;
+  static const double shimmerShortWidth = 120;
 }

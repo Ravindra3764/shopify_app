@@ -88,6 +88,8 @@ class _HomeContent extends ConsumerWidget {
                 AppRoutes.collectionPath(collection.handle),
                 extra: collection.title,
               ),
+              onProductTap: (product) =>
+                  context.push(AppRoutes.productDetailPath(product.handle)),
             ),
           ],
         ],
