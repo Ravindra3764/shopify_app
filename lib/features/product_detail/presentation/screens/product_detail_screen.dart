@@ -73,6 +73,10 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
   Widget build(BuildContext context) {
     final detail = widget.detail;
     final featureFlags = ref.watch(featureFlagsProvider);
+    final shippingReturnCopy = ref
+        .watch(shopPoliciesProvider)
+        .valueOrNull
+        ?.combinedCopy;
     final selection = ref.watch(productSelectionProvider(widget.handle));
     final selectionNotifier = ref.read(
       productSelectionProvider(widget.handle).notifier,
@@ -106,6 +110,7 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
                     variant: variant,
                     selection: selection,
                     featureFlags: featureFlags,
+                    shippingReturnCopy: shippingReturnCopy ?? '',
                     onSelectOption: selectionNotifier.selectOption,
                     onIncrementQuantity: selectionNotifier.incrementQuantity,
                     onDecrementQuantity: selection.quantity > 1
@@ -134,6 +139,7 @@ class _ProductInfo extends StatelessWidget {
     required this.variant,
     required this.selection,
     required this.featureFlags,
+    required this.shippingReturnCopy,
     required this.onSelectOption,
     required this.onIncrementQuantity,
     required this.onDecrementQuantity,
@@ -143,6 +149,7 @@ class _ProductInfo extends StatelessWidget {
   final ProductVariant? variant;
   final ProductSelection selection;
   final FeatureFlags featureFlags;
+  final String shippingReturnCopy;
   final void Function(String name, String value) onSelectOption;
   final VoidCallback onIncrementQuantity;
   final VoidCallback? onDecrementQuantity;
@@ -211,6 +218,7 @@ class _ProductInfo extends StatelessWidget {
           showReviewsTab: featureFlags.reviewsEnabled,
           averageRating: detail.averageRating,
           reviewsCount: detail.reviewsCount,
+          shippingReturnCopy: shippingReturnCopy,
         ),
       ],
     );

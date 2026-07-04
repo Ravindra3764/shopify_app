@@ -12,12 +12,18 @@ class ProductDetailTabs extends StatefulWidget {
     this.showReviewsTab = false,
     this.averageRating,
     this.reviewsCount,
+    this.shippingReturnCopy = '',
   });
 
   final String description;
   final bool showReviewsTab;
   final double? averageRating;
   final int? reviewsCount;
+
+  /// Shop's shipping & refund policy copy, from `shop.shippingPolicy` /
+  /// `shop.refundPolicy` on the Storefront API. Empty while loading or if
+  /// the merchant hasn't configured either policy.
+  final String shippingReturnCopy;
 
   @override
   State<ProductDetailTabs> createState() => _ProductDetailTabsState();
@@ -81,7 +87,9 @@ class _ProductDetailTabsState extends State<ProductDetailTabs>
                 reviewsCount: widget.reviewsCount,
               ),
             Text(
-              _shippingReturnCopy,
+              widget.shippingReturnCopy.isEmpty
+                  ? 'No shipping & return policy available.'
+                  : widget.shippingReturnCopy,
               style: textTheme.bodyMedium?.copyWith(
                 color: AppColors.textSecondary,
                 height: 1.5,
@@ -133,9 +141,3 @@ class _ReviewsSummary extends StatelessWidget {
     return RatingStars(rating: averageRating!, reviewCount: reviewsCount);
   }
 }
-
-const String _shippingReturnCopy =
-    'Orders ship within 2-3 business days. Delivery typically takes 5-7 '
-    'business days depending on your location.\n\n'
-    'Not the right fit? Return unworn items within 30 days of delivery for '
-    'a full refund.';

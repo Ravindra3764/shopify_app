@@ -5,6 +5,7 @@ import 'package:shopify_app/features/product_detail/presentation/providers/produ
 import 'package:shopify_app/providers/shopify_providers.dart';
 import 'package:shopify_app/shopify/models/product.dart';
 import 'package:shopify_app/shopify/models/product_detail.dart';
+import 'package:shopify_app/shopify/models/shop_policies.dart';
 
 /// Product-detail repository, wired to the Storefront `ApiClient`.
 final productDetailRepositoryProvider = Provider<ProductDetailRepository>(
@@ -45,6 +46,26 @@ class ProductRecommendationsNotifier
     final repo = ref.watch(productDetailRepositoryProvider);
     final result = await repo.getRecommendations(productId);
     return result.fold((products) => products, (failure) => throw failure);
+  }
+}
+
+/// Shop-wide shipping/return policy copy — identical across every product,
+/// so it's kept alive for the app session once loaded instead of refetching
+/// per product handle.
+final shopPoliciesProvider =
+    AsyncNotifierProvider<ShopPoliciesNotifier, ShopPolicies>(
+      ShopPoliciesNotifier.new,
+    );
+
+/// Fetches shop policies via [ProductDetailRepository]; rethrows `Failure`
+/// for `AsyncValue.error`.
+class ShopPoliciesNotifier extends AsyncNotifier<ShopPolicies> {
+  @override
+  Future<ShopPolicies> build() async {
+    ref.keepAlive();
+    final repo = ref.watch(productDetailRepositoryProvider);
+    final result = await repo.getShopPolicies();
+    return result.fold((policies) => policies, (failure) => throw failure);
   }
 }
 

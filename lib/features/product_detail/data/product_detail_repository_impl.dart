@@ -6,7 +6,9 @@ import 'package:shopify_app/core/utils/json_parse.dart';
 import 'package:shopify_app/features/product_detail/domain/product_detail_repository.dart';
 import 'package:shopify_app/shopify/models/product.dart';
 import 'package:shopify_app/shopify/models/product_detail.dart';
+import 'package:shopify_app/shopify/models/shop_policies.dart';
 import 'package:shopify_app/shopify/queries/products_queries.dart';
+import 'package:shopify_app/shopify/queries/shop_queries.dart';
 
 /// [ProductDetailRepository] backed by the Shopify Storefront API.
 class ProductDetailRepositoryImpl implements ProductDetailRepository {
@@ -53,6 +55,17 @@ class ProductDetailRepositoryImpl implements ProductDetailRepository {
         ),
       );
       return Success(nodes);
+    } on ShopifyException catch (e) {
+      return Failed(Failure.fromShopify(e));
+    }
+  }
+
+  @override
+  Future<Result<ShopPolicies, Failure>> getShopPolicies() async {
+    try {
+      final data = await _client.query(kShopPoliciesQuery);
+      final shop = parseMap(data, 'shop', model: 'ProductDetailRepository');
+      return Success(ShopPolicies.fromJson(shop));
     } on ShopifyException catch (e) {
       return Failed(Failure.fromShopify(e));
     }
