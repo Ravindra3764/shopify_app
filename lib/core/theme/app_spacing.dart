@@ -33,7 +33,7 @@ abstract final class AppDimensions {
   static const double circleIconButtonSize = 36;
   static const double galleryDotSize = 6;
   static const double galleryDotActiveWidth = 18;
-  static const double swatchSize = 56;
+  static const double swatchSize = 46;
   static const double swatchRingWidth = 2;
   static const double optionChipHeight = 44;
   static const double quantityStepperWidth = 120;
