@@ -1,14 +1,20 @@
 import 'package:go_router/go_router.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
+import 'package:shopify_app/core/routing/app_shell.dart';
+import 'package:shopify_app/features/cart/presentation/screens/cart_screen.dart';
 import 'package:shopify_app/features/home/presentation/screens/home_screen.dart';
 import 'package:shopify_app/features/product_detail/presentation/screens/product_detail_screen.dart';
 import 'package:shopify_app/features/product_listing/presentation/screens/collection_screen.dart';
+import 'package:shopify_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:shopify_app/features/splash/presentation/screens/splash_screen.dart';
 
 /// Builds the app's [GoRouter].
 ///
 /// Routes are declared with paths from [AppRoutes] so deep links
 /// (`/collection/men`) resolve to the right screen without extra wiring.
+/// Home/Cart/Profile live under a [StatefulShellRoute] so [AppShell]'s
+/// floating bottom nav persists across them, each keeping its own stack;
+/// collection/product-detail push full-screen on top, hiding the nav.
 GoRouter createRouter() {
   return GoRouter(
     initialLocation: AppRoutes.splash,
@@ -17,9 +23,35 @@ GoRouter createRouter() {
         path: AppRoutes.splash,
         builder: (context, state) => const SplashScreen(),
       ),
-      GoRoute(
-        path: AppRoutes.home,
-        builder: (context, state) => const HomeScreen(),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) =>
+            AppShell(navigationShell: navigationShell),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.home,
+                builder: (context, state) => const HomeScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.cart,
+                builder: (context, state) => const CartScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.profile,
+                builder: (context, state) => const ProfileScreen(),
+              ),
+            ],
+          ),
+        ],
       ),
       GoRoute(
         path: AppRoutes.collection,

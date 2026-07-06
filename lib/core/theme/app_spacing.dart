@@ -39,4 +39,16 @@ abstract final class AppDimensions {
   static const double quantityStepperWidth = 120;
   static const double shimmerTitleWidth = 220;
   static const double shimmerShortWidth = 120;
+
+  /// Sizes for the floating bottom navigation bar.
+  static const double floatingNavHeight = 64;
+  static const double floatingNavRadius = 32;
+  static const double floatingNavItemRadius = 24;
+  static const double floatingNavIconSize = 24;
+  static const double floatingNavShadowBlur = 20;
+  static const double floatingNavShadowOffsetY = 8;
+
+  /// Bottom padding scrollable tab content needs so its last item clears
+  /// the floating nav bar instead of sitting behind it.
+  static const double floatingNavClearance = floatingNavHeight + AppSpacing.xl;
 }

@@ -57,7 +57,9 @@ class _HomeContent extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: () => ref.read(homeProvider.notifier).refresh(),
       child: ListView(
-        padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+        padding: const EdgeInsets.only(
+          bottom: AppDimensions.floatingNavClearance,
+        ),
         children: [
           const Padding(
             padding: EdgeInsets.fromLTRB(

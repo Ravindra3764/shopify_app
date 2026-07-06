@@ -9,6 +9,12 @@ abstract final class AppRoutes {
   /// Home route.
   static const String home = '/home';
 
+  /// Cart tab route.
+  static const String cart = '/cart';
+
+  /// Profile tab route.
+  static const String profile = '/profile';
+
   /// Collection product grid; deep-link pattern `/collection/:handle`.
   static const String collection = '/collection/:handle';
 
