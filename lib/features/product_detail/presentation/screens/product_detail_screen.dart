@@ -6,6 +6,7 @@ import 'package:shopify_app/core/error/failure.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart';
 import 'package:shopify_app/features/product_detail/presentation/providers/product_detail_providers.dart';
 import 'package:shopify_app/features/product_detail/presentation/providers/product_selection.dart';
 import 'package:shopify_app/features/product_detail/presentation/widgets/product_detail_tabs.dart';
@@ -84,6 +85,11 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
     final variant = detail.variantFor(selection.selectedOptions);
     final canPurchase =
         detail.availableForSale && (variant?.availableForSale ?? true);
+    // Products with no real options have a single default variant that
+    // `variantFor` can't match (empty selection), so fall back to the first.
+    final merchandiseId =
+        (variant ?? (detail.variants.isEmpty ? null : detail.variants.first))
+            ?.id;
 
     return Column(
       children: [
@@ -127,6 +133,7 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
         _StickyActionBar(
           canPurchase: canPurchase,
           quantity: selection.quantity,
+          merchandiseId: merchandiseId,
         ),
       ],
     );
@@ -250,14 +257,42 @@ class _RelatedProducts extends ConsumerWidget {
   }
 }
 
-class _StickyActionBar extends StatelessWidget {
-  const _StickyActionBar({required this.canPurchase, required this.quantity});
+class _StickyActionBar extends ConsumerStatefulWidget {
+  const _StickyActionBar({
+    required this.canPurchase,
+    required this.quantity,
+    required this.merchandiseId,
+  });
 
   final bool canPurchase;
   final int quantity;
+  final String? merchandiseId;
+
+  @override
+  ConsumerState<_StickyActionBar> createState() => _StickyActionBarState();
+}
+
+class _StickyActionBarState extends ConsumerState<_StickyActionBar> {
+  bool _isAdding = false;
+
+  Future<void> _addToCart() async {
+    final variantId = widget.merchandiseId;
+    if (variantId == null) return;
+
+    setState(() => _isAdding = true);
+    await ref
+        .read(cartProvider.notifier)
+        .addVariant(variantId, quantity: widget.quantity);
+    if (!mounted) return;
+
+    setState(() => _isAdding = false);
+    final failed = ref.read(cartProvider).hasError;
+    _notify(failed ? 'Could not add to cart.' : 'Added to cart.');
+  }
 
   @override
   Widget build(BuildContext context) {
+    final canAdd = widget.canPurchase && widget.merchandiseId != null;
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -271,18 +306,17 @@ class _StickyActionBar extends StatelessWidget {
             children: [
               Expanded(
                 child: CustomButton.outline(
-                  label: canPurchase ? 'Add to Cart' : 'Sold Out',
-                  onPressed: canPurchase
-                      ? () => _notify(context, 'Added $quantity to cart')
-                      : null,
+                  label: widget.canPurchase ? 'Add to Cart' : 'Sold Out',
+                  isLoading: _isAdding,
+                  onPressed: canAdd ? _addToCart : null,
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: CustomButton.primary(
                   label: 'Buy Now',
-                  onPressed: canPurchase
-                      ? () => _notify(context, 'Proceeding to checkout')
+                  onPressed: widget.canPurchase
+                      ? () => _notify('Checkout is coming soon.')
                       : null,
                 ),
               ),
@@ -293,7 +327,7 @@ class _StickyActionBar extends StatelessWidget {
     );
   }
 
-  void _notify(BuildContext context, String message) {
+  void _notify(String message) {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));

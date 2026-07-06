@@ -24,6 +24,9 @@ class LoadingShimmer extends StatelessWidget {
   /// for reuse under a real section header (e.g. related products).
   const LoadingShimmer.row({Key? key}) : this._(_cardsRowLayout, key: key);
 
+  /// Cart skeleton: header lines, a few item rows, and a totals card.
+  const LoadingShimmer.cart({Key? key}) : this._(_cartLayout, key: key);
+
   final Widget Function(BuildContext) _builder;
 
   @override
@@ -118,6 +121,62 @@ class LoadingShimmer extends StatelessWidget {
             ],
           ),
         ),
+      ],
+    );
+  }
+
+  static Widget _cartLayout(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      children: [
+        const SizedBox(height: AppSpacing.xl),
+        const _Box(
+          height: AppSpacing.lg,
+          width: AppDimensions.shimmerTitleWidth,
+          radius: AppDimensions.radiusSm,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        const _Box(
+          height: AppSpacing.md,
+          width: AppDimensions.shimmerShortWidth,
+          radius: AppDimensions.radiusSm,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        for (var i = 0; i < 3; i++) ...[
+          const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _Box(
+                height: AppDimensions.cartThumbSize,
+                width: AppDimensions.cartThumbSize,
+                radius: AppDimensions.radiusSm,
+              ),
+              SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _Box(height: AppSpacing.md, radius: AppDimensions.radiusSm),
+                    SizedBox(height: AppSpacing.sm),
+                    _Box(
+                      height: AppSpacing.sm,
+                      width: AppDimensions.shimmerShortWidth,
+                      radius: AppDimensions.radiusSm,
+                    ),
+                    SizedBox(height: AppSpacing.md),
+                    _Box(
+                      height: AppDimensions.optionChipHeight,
+                      width: AppDimensions.quantityStepperWidth,
+                      radius: AppDimensions.radiusSm,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+        ],
+        const _Box(height: AppDimensions.cartSummaryShimmerHeight),
       ],
     );
   }
