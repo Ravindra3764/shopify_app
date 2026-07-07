@@ -8,6 +8,7 @@ import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart';
 import 'package:shopify_app/features/cart/presentation/widgets/cart_item_tile.dart';
 import 'package:shopify_app/features/cart/presentation/widgets/cart_summary.dart';
+import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
 import 'package:shopify_app/shared/widgets/empty_state_view.dart';
@@ -106,8 +107,11 @@ class _CartContent extends ConsumerWidget {
           ],
           CartSummary(
             cart: cart,
-            onApplyPromo: (_) =>
-                _notify(context, 'Promo codes are coming soon.'),
+            onApplyPromo: (_) => showAppSnackBar(
+              context,
+              'Promo codes are on the way.',
+              icon: Icons.local_offer_outlined,
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
           CustomButton.primary(
@@ -117,7 +121,11 @@ class _CartContent extends ConsumerWidget {
               size: AppDimensions.iconSm,
               color: AppColors.white,
             ),
-            onPressed: () => _notify(context, 'Checkout is coming soon.'),
+            onPressed: () => showAppSnackBar(
+              context,
+              'Secure checkout is on the way.',
+              icon: Icons.lock_outline,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           Center(
@@ -135,11 +143,5 @@ class _CartContent extends ConsumerWidget {
         ],
       ),
     );
-  }
-
-  void _notify(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }

@@ -16,6 +16,11 @@ final cartProvider = AsyncNotifierProvider<CartNotifier, Cart?>(
   CartNotifier.new,
 );
 
+/// Total item count in the cart — drives cart-icon badges. `0` when empty.
+final cartCountProvider = Provider<int>(
+  (ref) => ref.watch(cartProvider).valueOrNull?.totalQuantity ?? 0,
+);
+
 /// Holds the guest cart and drives its mutations.
 ///
 /// The `cartId` lives only in memory for the session (`ref.keepAlive` keeps

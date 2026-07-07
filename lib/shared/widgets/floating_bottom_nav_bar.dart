@@ -8,11 +8,15 @@ class FloatingNavItem {
     required this.icon,
     required this.activeIcon,
     required this.label,
+    this.badgeCount = 0,
   });
 
   final IconData icon;
   final IconData activeIcon;
   final String label;
+
+  /// Count shown in a badge over the icon; hidden when `0`.
+  final int badgeCount;
 }
 
 /// Pill-shaped bottom navigation bar that floats above the page content
@@ -113,18 +117,54 @@ class _NavItemButton extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AnimatedSwitcher(
-              duration: _duration,
-              switchInCurve: _curve,
-              switchOutCurve: _curve,
-              transitionBuilder: (child, animation) =>
-                  ScaleTransition(scale: animation, child: child),
-              child: Icon(
-                isSelected ? item.activeIcon : item.icon,
-                key: ValueKey(isSelected),
-                size: AppDimensions.floatingNavIconSize,
-                color: isSelected ? AppColors.primary : AppColors.textTertiary,
-              ),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                AnimatedSwitcher(
+                  duration: _duration,
+                  switchInCurve: _curve,
+                  switchOutCurve: _curve,
+                  transitionBuilder: (child, animation) =>
+                      ScaleTransition(scale: animation, child: child),
+                  child: Icon(
+                    isSelected ? item.activeIcon : item.icon,
+                    key: ValueKey(isSelected),
+                    size: AppDimensions.floatingNavIconSize,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.textTertiary,
+                  ),
+                ),
+                if (item.badgeCount > 0)
+                  Positioned(
+                    top: -AppSpacing.sm,
+                    right: -AppSpacing.sm,
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minWidth: AppDimensions.cartBadgeSize,
+                      ),
+                      height: AppDimensions.cartBadgeSize,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(
+                          AppDimensions.cartBadgeSize,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        item.badgeCount > 99 ? '99+' : '${item.badgeCount}',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: AppColors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
             AnimatedSize(
               duration: _duration,

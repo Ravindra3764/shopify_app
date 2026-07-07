@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -15,6 +17,7 @@ import 'package:shopify_app/features/product_detail/presentation/widgets/product
 import 'package:shopify_app/features/product_detail/presentation/widgets/quantity_stepper.dart';
 import 'package:shopify_app/features/product_detail/presentation/widgets/related_products_section.dart';
 import 'package:shopify_app/providers/config_providers.dart';
+import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
 import 'package:shopify_app/shared/widgets/error_view.dart';
@@ -274,6 +277,14 @@ class _StickyActionBar extends ConsumerStatefulWidget {
 
 class _StickyActionBarState extends ConsumerState<_StickyActionBar> {
   bool _isAdding = false;
+  bool _justAdded = false;
+  Timer? _resetTimer;
+
+  @override
+  void dispose() {
+    _resetTimer?.cancel();
+    super.dispose();
+  }
 
   Future<void> _addToCart() async {
     final variantId = widget.merchandiseId;
@@ -285,14 +296,34 @@ class _StickyActionBarState extends ConsumerState<_StickyActionBar> {
         .addVariant(variantId, quantity: widget.quantity);
     if (!mounted) return;
 
-    setState(() => _isAdding = false);
     final failed = ref.read(cartProvider).hasError;
-    _notify(failed ? 'Could not add to cart.' : 'Added to cart.');
+    setState(() {
+      _isAdding = false;
+      _justAdded = !failed;
+    });
+
+    if (failed) {
+      showAppSnackBar(
+        context,
+        'Could not add to cart. Please try again.',
+        icon: Icons.error_outline,
+      );
+      return;
+    }
+    // Revert the confirmation label after a beat so the user can add more.
+    _resetTimer?.cancel();
+    _resetTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _justAdded = false);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final canAdd = widget.canPurchase && widget.merchandiseId != null;
+    final addLabel = _justAdded
+        ? 'Added to Cart'
+        : (widget.canPurchase ? 'Add to Cart' : 'Sold Out');
+
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -306,8 +337,15 @@ class _StickyActionBarState extends ConsumerState<_StickyActionBar> {
             children: [
               Expanded(
                 child: CustomButton.outline(
-                  label: widget.canPurchase ? 'Add to Cart' : 'Sold Out',
+                  label: addLabel,
                   isLoading: _isAdding,
+                  leadingIcon: _justAdded
+                      ? Icon(
+                          Icons.check_circle_outline,
+                          size: AppDimensions.iconSm,
+                          color: AppColors.primary,
+                        )
+                      : null,
                   onPressed: canAdd ? _addToCart : null,
                 ),
               ),
@@ -316,7 +354,11 @@ class _StickyActionBarState extends ConsumerState<_StickyActionBar> {
                 child: CustomButton.primary(
                   label: 'Buy Now',
                   onPressed: widget.canPurchase
-                      ? () => _notify('Checkout is coming soon.')
+                      ? () => showAppSnackBar(
+                          context,
+                          'Express checkout is on the way.',
+                          icon: Icons.bolt_outlined,
+                        )
                       : null,
                 ),
               ),
@@ -325,11 +367,5 @@ class _StickyActionBarState extends ConsumerState<_StickyActionBar> {
         ),
       ),
     );
-  }
-
-  void _notify(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
