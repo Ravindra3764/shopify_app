@@ -50,7 +50,7 @@ abstract final class AppColors {
   static const Color rating = Color(0xFFF7B539);
   static const Color discount = Color(0xFFF14336);
 
-  // --- Helpers -------------------------------------  --------------------------
+  // --- Helpers ---------------------------------------------------------------
 
   /// Parses a hex string (`#RRGGBB`, `RRGGBB`, or `#AARRGGBB`) into a [Color].
   static Color fromHex(String hex) {

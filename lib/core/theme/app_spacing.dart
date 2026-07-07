@@ -51,4 +51,8 @@ abstract final class AppDimensions {
   /// Bottom padding scrollable tab content needs so its last item clears
   /// the floating nav bar instead of sitting behind it.
   static const double floatingNavClearance = floatingNavHeight + AppSpacing.xl;
+
+  /// Sizes for the cart screen.
+  static const double cartThumbSize = 96;
+  static const double cartSummaryShimmerHeight = 180;
 }
