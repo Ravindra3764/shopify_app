@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/core/error/failure.dart';
 import 'package:shopify_app/core/result/result.dart';
@@ -32,9 +34,24 @@ final cartCountProvider = Provider<int>(
 class CartNotifier extends AsyncNotifier<Cart?> {
   String? _cartId;
 
+  /// Last cart returned by Shopify — the truth we snap back to if a debounced
+  /// quantity sync fails after an optimistic edit.
+  Cart? _serverCart;
+
+  /// Per-line debounce timers and their pending target quantities. A burst of
+  /// stepper taps updates state optimistically each time but collapses into a
+  /// single [_flushQuantity] once the taps stop.
+  final Map<String, Timer> _debounceTimers = {};
+  final Map<String, int> _pendingQuantities = {};
+
+  /// Idle window after the last stepper tap before the quantity is sent.
+  static const _stepperDebounce = Duration(milliseconds: 400);
+
   @override
   Future<Cart?> build() async {
-    ref.keepAlive();
+    ref
+      ..keepAlive()
+      ..onDispose(_cancelDebounces);
     return null;
   }
 
@@ -53,14 +70,63 @@ class CartNotifier extends AsyncNotifier<Cart?> {
   /// Sets the quantity of [lineId]; removes the line when [quantity] hits 0.
   ///
   /// Applies the new quantity to local state immediately so the stepper reacts
-  /// without waiting on the network, then reconciles with the authoritative
-  /// cart from Shopify (or reverts on failure via [_mutate]).
-  Future<void> setLineQuantity(String lineId, int quantity) {
+  /// without waiting on the network, then debounces the Storefront write: a
+  /// burst of taps sends only the final quantity once, [_stepperDebounce]
+  /// after the last tap.
+  void setLineQuantity(String lineId, int quantity) {
     final id = _cartId;
-    if (id == null) return Future<void>.value();
-    if (quantity <= 0) return removeLine(lineId);
+    if (id == null) return;
+    if (quantity <= 0) {
+      _debounceTimers.remove(lineId)?.cancel();
+      _pendingQuantities.remove(lineId);
+      unawaited(removeLine(lineId));
+      return;
+    }
     _applyOptimisticQuantity(lineId, quantity);
-    return _mutate(() => _repo.updateLine(id, lineId, quantity));
+    _pendingQuantities[lineId] = quantity;
+    _debounceTimers[lineId]?.cancel();
+    _debounceTimers[lineId] = Timer(
+      _stepperDebounce,
+      () => unawaited(_flushQuantity(id, lineId)),
+    );
+  }
+
+  /// Sends the latest pending quantity for [lineId] to Shopify and reconciles.
+  /// Skips reconciliation if a newer tap has since queued a different target —
+  /// that tap's own flush becomes the source of truth instead.
+  Future<void> _flushQuantity(String cartId, String lineId) async {
+    _debounceTimers.remove(lineId);
+    final target = _pendingQuantities[lineId];
+    if (target == null) return;
+
+    final result = await _repo.updateLine(cartId, lineId, target);
+
+    // A tap landed while this request was in flight; let its flush win.
+    if (_pendingQuantities[lineId] != target) return;
+    _pendingQuantities.remove(lineId);
+
+    state = result.fold(
+      (cart) {
+        _cartId = cart.id;
+        _serverCart = cart;
+        return AsyncData<Cart?>(cart);
+      },
+      (failure) {
+        // Sync failed — snap the optimistic value back to server truth.
+        final reverted = _serverCart;
+        return reverted == null
+            ? AsyncError<Cart?>(failure, StackTrace.current)
+            : AsyncData<Cart?>(reverted);
+      },
+    );
+  }
+
+  void _cancelDebounces() {
+    for (final timer in _debounceTimers.values) {
+      timer.cancel();
+    }
+    _debounceTimers.clear();
+    _pendingQuantities.clear();
   }
 
   /// Rewrites [lineId]'s quantity (and line total) in the current cart and
@@ -98,6 +164,7 @@ class CartNotifier extends AsyncNotifier<Cart?> {
     final result = await op();
     state = result.fold((cart) {
       _cartId = cart.id;
+      _serverCart = cart;
       return AsyncData<Cart?>(cart);
     }, (failure) => AsyncError<Cart?>(failure, StackTrace.current));
   }
