@@ -12,6 +12,7 @@ class ProductVariant {
     required this.selectedOptions,
     this.compareAtPrice,
     this.image,
+    this.quantityAvailable,
   });
 
   /// Builds from a Storefront `ProductVariant` node.
@@ -36,6 +37,11 @@ class ProductVariant {
       id: parseString(json, 'id', model: _model),
       title: parseString(json, 'title', model: _model),
       availableForSale: parseBool(json, 'availableForSale', model: _model),
+      quantityAvailable: parseIntOrNull(
+        json,
+        'quantityAvailable',
+        model: _model,
+      ),
       price: Money.fromJson(parseMap(json, 'price', model: _model)),
       compareAtPrice: (compareAt != null && compareAt.isPositive)
           ? compareAt
@@ -58,6 +64,9 @@ class ProductVariant {
   /// Option name → selected value, e.g. `{'Color': 'Black', 'Size': 'M'}`.
   final Map<String, String> selectedOptions;
   final ShopifyImage? image;
+
+  /// Units in stock; `null` when Shopify doesn't track inventory (unlimited).
+  final int? quantityAvailable;
 
   /// Whether this variant matches every entry in [selection].
   bool matches(Map<String, String> selection) {

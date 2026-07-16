@@ -5,6 +5,7 @@ import 'package:shopify_app/features/cart/data/cart_repository_impl.dart';
 import 'package:shopify_app/features/cart/domain/cart_repository.dart';
 import 'package:shopify_app/providers/shopify_providers.dart';
 import 'package:shopify_app/shopify/models/cart.dart';
+import 'package:shopify_app/shopify/models/money.dart';
 
 /// Cart repository, wired to the Storefront `ApiClient`.
 final cartRepositoryProvider = Provider<CartRepository>(
@@ -50,11 +51,37 @@ class CartNotifier extends AsyncNotifier<Cart?> {
   }
 
   /// Sets the quantity of [lineId]; removes the line when [quantity] hits 0.
+  ///
+  /// Applies the new quantity to local state immediately so the stepper reacts
+  /// without waiting on the network, then reconciles with the authoritative
+  /// cart from Shopify (or reverts on failure via [_mutate]).
   Future<void> setLineQuantity(String lineId, int quantity) {
     final id = _cartId;
     if (id == null) return Future<void>.value();
     if (quantity <= 0) return removeLine(lineId);
+    _applyOptimisticQuantity(lineId, quantity);
     return _mutate(() => _repo.updateLine(id, lineId, quantity));
+  }
+
+  /// Rewrites [lineId]'s quantity (and line total) in the current cart and
+  /// publishes it, so the UI updates ahead of the Storefront round-trip.
+  void _applyOptimisticQuantity(String lineId, int quantity) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final lines = [
+      for (final line in current.lines)
+        if (line.id == lineId)
+          line.copyWith(
+            quantity: quantity,
+            lineTotal: Money(
+              amount: line.unitPrice.amount * quantity,
+              currencyCode: line.unitPrice.currencyCode,
+            ),
+          )
+        else
+          line,
+    ];
+    state = AsyncData<Cart?>(current.withLines(lines));
   }
 
   /// Removes [lineId] from the cart.

@@ -88,6 +88,9 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
     final variant = detail.variantFor(selection.selectedOptions);
     final canPurchase =
         detail.availableForSale && (variant?.availableForSale ?? true);
+    // Cap the quantity stepper at available stock; `null` = untracked/unlimited.
+    final stock = variant?.quantityAvailable;
+    final canIncreaseQty = stock == null || selection.quantity < stock;
     // Products with no real options have a single default variant that
     // `variantFor` can't match (empty selection), so fall back to the first.
     final merchandiseId =
@@ -121,7 +124,9 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
                     featureFlags: featureFlags,
                     shippingReturnCopy: shippingReturnCopy ?? '',
                     onSelectOption: selectionNotifier.selectOption,
-                    onIncrementQuantity: selectionNotifier.incrementQuantity,
+                    onIncrementQuantity: canIncreaseQty
+                        ? selectionNotifier.incrementQuantity
+                        : null,
                     onDecrementQuantity: selection.quantity > 1
                         ? selectionNotifier.decrementQuantity
                         : null,
@@ -161,7 +166,9 @@ class _ProductInfo extends StatelessWidget {
   final FeatureFlags featureFlags;
   final String shippingReturnCopy;
   final void Function(String name, String value) onSelectOption;
-  final VoidCallback onIncrementQuantity;
+
+  /// `null` disables `+` — e.g. once quantity reaches available stock.
+  final VoidCallback? onIncrementQuantity;
   final VoidCallback? onDecrementQuantity;
 
   @override

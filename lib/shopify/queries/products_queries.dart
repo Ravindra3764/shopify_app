@@ -32,6 +32,7 @@ query ProductByHandle($handle: String!, $variantsFirst: Int!, $imagesFirst: Int!
           id
           title
           availableForSale
+          quantityAvailable
           selectedOptions { name value }
           price { amount currencyCode }
           compareAtPrice { amount currencyCode }

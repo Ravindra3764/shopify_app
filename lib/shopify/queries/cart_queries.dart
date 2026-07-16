@@ -23,6 +23,7 @@ fragment CartFields on Cart {
           ... on ProductVariant {
             id
             title
+            quantityAvailable
             image { url altText width height }
             price { amount currencyCode }
             selectedOptions { name value }

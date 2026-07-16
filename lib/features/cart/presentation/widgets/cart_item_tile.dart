@@ -29,7 +29,9 @@ class CartItemTile extends StatelessWidget {
   });
 
   final CartLine line;
-  final VoidCallback onIncrement;
+
+  /// `null` disables `+` — e.g. once quantity reaches available stock.
+  final VoidCallback? onIncrement;
   final VoidCallback? onDecrement;
   final VoidCallback onRemove;
 

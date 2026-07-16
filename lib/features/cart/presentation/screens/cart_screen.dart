@@ -93,8 +93,9 @@ class _CartContent extends ConsumerWidget {
           for (final line in cart.lines) ...[
             CartItemTile(
               line: line,
-              onIncrement: () =>
-                  notifier.setLineQuantity(line.id, line.quantity + 1),
+              onIncrement: line.canIncrease
+                  ? () => notifier.setLineQuantity(line.id, line.quantity + 1)
+                  : null,
               onDecrement: line.quantity > 1
                   ? () => notifier.setLineQuantity(line.id, line.quantity - 1)
                   : null,
