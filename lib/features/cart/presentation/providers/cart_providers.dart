@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/core/error/failure.dart';
 import 'package:shopify_app/core/result/result.dart';
+import 'package:shopify_app/core/storage/cart_storage.dart';
 import 'package:shopify_app/features/cart/data/cart_repository_impl.dart';
 import 'package:shopify_app/features/cart/domain/cart_repository.dart';
 import 'package:shopify_app/providers/shopify_providers.dart';
+import 'package:shopify_app/providers/storage_providers.dart';
 import 'package:shopify_app/shopify/models/cart.dart';
 import 'package:shopify_app/shopify/models/money.dart';
 
@@ -52,10 +54,33 @@ class CartNotifier extends AsyncNotifier<Cart?> {
     ref
       ..keepAlive()
       ..onDispose(_cancelDebounces);
-    return null;
+    return _rehydrate();
   }
 
   CartRepository get _repo => ref.read(cartRepositoryProvider);
+
+  CartStorage get _storage => ref.read(cartStorageProvider);
+
+  /// Restores the cart saved from a previous session. Returns `null` (empty
+  /// cart) when nothing is stored, or when Shopify reports the saved cart is
+  /// gone — in which case the stale ID is cleared so a fresh cart starts.
+  Future<Cart?> _rehydrate() async {
+    final savedId = _storage.readCartId();
+    if (savedId == null) return null;
+
+    final result = await _repo.getCart(savedId);
+    return result.fold(
+      (cart) {
+        _cartId = cart.id;
+        _serverCart = cart;
+        return cart;
+      },
+      (_) {
+        unawaited(_storage.clearCartId());
+        return null;
+      },
+    );
+  }
 
   /// Adds [quantity] of [variantId], creating the cart on first use.
   Future<void> addVariant(String variantId, {int quantity = 1}) {
@@ -165,6 +190,7 @@ class CartNotifier extends AsyncNotifier<Cart?> {
     state = result.fold((cart) {
       _cartId = cart.id;
       _serverCart = cart;
+      unawaited(_storage.writeCartId(cart.id));
       return AsyncData<Cart?>(cart);
     }, (failure) => AsyncError<Cart?>(failure, StackTrace.current));
   }
