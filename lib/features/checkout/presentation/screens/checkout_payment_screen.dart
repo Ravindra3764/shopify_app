@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -50,10 +51,21 @@ class _CheckoutPaymentScreenState extends ConsumerState<CheckoutPaymentScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (url) {
+            _log(url);
             if (_isOrderComplete(url)) _complete();
           },
           onPageFinished: (_) {
             if (mounted) setState(() => _loading = false);
+          },
+          // Shopify's checkout is a single-page app: the thank-you page often
+          // loads via client-side routing (history.pushState) without a real
+          // navigation, so `onNavigationRequest` never sees it. `onUrlChange`
+          // catches those in-page URL changes.
+          onUrlChange: (change) {
+            final url = change.url;
+            if (url == null) return;
+            _log(url);
+            if (_isOrderComplete(url)) _complete();
           },
           onNavigationRequest: (request) {
             if (_isOrderComplete(request.url)) {
@@ -67,18 +79,25 @@ class _CheckoutPaymentScreenState extends ConsumerState<CheckoutPaymentScreen> {
       ..loadRequest(Uri.parse(widget.checkoutUrl));
   }
 
+  void _log(String url) {
+    if (kDebugMode) debugPrint('[checkout] webview url: $url');
+  }
+
   Future<void> _launchExternal() async {
     final uri = Uri.parse(widget.checkoutUrl);
     await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   /// Matches Shopify's post-payment URLs (thank-you / order-status pages).
+  /// `thank` covers both `thank_you` and `thank-you`; the order/status paths
+  /// cover the newer one-page checkout redirect.
   bool _isOrderComplete(String url) {
     final lower = url.toLowerCase();
-    return lower.contains('thank_you') ||
-        lower.contains('thank-you') ||
+    return lower.contains('thank') ||
         lower.contains('/orders/') ||
-        lower.contains('order-status');
+        lower.contains('order-status') ||
+        lower.contains('order_status') ||
+        lower.contains('/post-purchase');
   }
 
   Future<void> _complete() async {
@@ -95,6 +114,21 @@ class _CheckoutPaymentScreenState extends ConsumerState<CheckoutPaymentScreen> {
       title: 'Payment',
       horizontalPadding: 0,
       contentTopPadding: 0,
+      actions: inApp
+          ? [
+              // Fallback: if auto-detection misses the thank-you page, the
+              // shopper can confirm a completed order manually.
+              TextButton(
+                onPressed: _complete,
+                child: Text(
+                  'Done',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelLarge?.copyWith(color: AppColors.primary),
+                ),
+              ),
+            ]
+          : null,
       child: inApp ? _buildWebView() : _buildExternalPrompt(),
     );
   }
