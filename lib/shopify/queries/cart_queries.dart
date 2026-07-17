@@ -8,10 +8,26 @@ fragment CartFields on Cart {
   id
   checkoutUrl
   totalQuantity
+  buyerIdentity { email }
   cost {
     subtotalAmount { amount currencyCode }
     totalAmount { amount currencyCode }
     totalTaxAmount { amount currencyCode }
+  }
+  deliveryGroups(first: 10) {
+    edges {
+      node {
+        id
+        selectedDeliveryOption { handle }
+        deliveryOptions {
+          handle
+          title
+          code
+          description
+          estimatedCost { amount currencyCode }
+        }
+      }
+    }
   }
   lines(first: 100) {
     edges {
