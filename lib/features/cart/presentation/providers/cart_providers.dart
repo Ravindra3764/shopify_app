@@ -71,6 +71,12 @@ class CartNotifier extends AsyncNotifier<Cart?> {
     final result = await _repo.getCart(savedId);
     return result.fold(
       (cart) {
+        // A checked-out (spent) cart still resolves but comes back empty —
+        // its lines clamp to quantity 0. Discard it so a fresh cart starts.
+        if (cart.isEmpty) {
+          unawaited(_storage.clearCartId());
+          return null;
+        }
         _cartId = cart.id;
         _serverCart = cart;
         return cart;
@@ -83,12 +89,24 @@ class CartNotifier extends AsyncNotifier<Cart?> {
   }
 
   /// Adds [quantity] of [variantId], creating the cart on first use.
+  ///
+  /// Recovers from a spent cart: once a cart has been checked out, Shopify
+  /// still accepts `cartLinesAdd` but the line won't stick (it returns at
+  /// quantity 0). When that happens we abandon the dead cart and create a
+  /// fresh one so the item actually lands.
   Future<void> addVariant(String variantId, {int quantity = 1}) {
-    return _mutate(() {
+    return _mutate(() async {
       final id = _cartId;
-      return id == null
-          ? _repo.createCart(variantId, quantity)
-          : _repo.addLine(id, variantId, quantity);
+      if (id == null) return _repo.createCart(variantId, quantity);
+
+      final result = await _repo.addLine(id, variantId, quantity);
+      if (result case Success(:final value)
+          when !value.lines.any((line) => line.variantId == variantId)) {
+        unawaited(_storage.clearCartId());
+        _cartId = null;
+        return _repo.createCart(variantId, quantity);
+      }
+      return result;
     });
   }
 
