@@ -10,9 +10,12 @@ import 'package:shopify_app/shopify/mutations/checkout_mutations.dart';
 
 /// [CheckoutRepository] backed by the Shopify Storefront Cart API.
 class CheckoutRepositoryImpl implements CheckoutRepository {
-  const CheckoutRepositoryImpl(this._client);
+  const CheckoutRepositoryImpl(this._client, {required this.countryCode});
 
   final ApiClient _client;
+
+  /// Tenant market country (ISO code) that pins cart pricing/availability.
+  final String countryCode;
 
   static const _model = 'CheckoutRepository';
 
@@ -29,10 +32,11 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
           'cartId': cartId,
           'buyerIdentity': {
             'email': email,
-            // Deliberately NOT sending `countryCode`: it switches the cart to
-            // that Shopify Market, and if the store doesn't sell there the
-            // whole cart zeroes out (cost + line quantities → 0) with no
-            // userError. The delivery address below still drives shipping.
+            // Pin the cart to the tenant's market (matches how the cart was
+            // created). This must be a market the store actually sells to —
+            // otherwise Shopify silently zeroes the cart. The delivery address
+            // below is the ship-to and drives shipping options.
+            'countryCode': countryCode,
             'deliveryAddressPreferences': [
               {'deliveryAddress': address.toInput()},
             ],

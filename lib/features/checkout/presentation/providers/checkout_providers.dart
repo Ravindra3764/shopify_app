@@ -7,14 +7,19 @@ import 'package:shopify_app/features/cart/presentation/providers/cart_providers.
 import 'package:shopify_app/features/checkout/data/checkout_repository_impl.dart';
 import 'package:shopify_app/features/checkout/domain/checkout_repository.dart';
 import 'package:shopify_app/features/checkout/presentation/providers/checkout_state.dart';
+import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/providers/shopify_providers.dart';
 import 'package:shopify_app/providers/storage_providers.dart';
 import 'package:shopify_app/shopify/models/cart.dart';
 import 'package:shopify_app/shopify/models/mailing_address.dart';
 
-/// Checkout repository, wired to the Storefront `ApiClient`.
+/// Checkout repository, wired to the Storefront `ApiClient` and the tenant's
+/// market country (kept consistent with how the cart was created).
 final checkoutRepositoryProvider = Provider<CheckoutRepository>(
-  (ref) => CheckoutRepositoryImpl(ref.watch(apiClientProvider)),
+  (ref) => CheckoutRepositoryImpl(
+    ref.watch(apiClientProvider),
+    countryCode: ref.watch(appConfigProvider).defaultCountry,
+  ),
 );
 
 /// The shopper's locally-saved delivery addresses, newest-first.

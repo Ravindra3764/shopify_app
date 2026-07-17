@@ -10,9 +10,12 @@ import 'package:shopify_app/shopify/queries/cart_queries.dart';
 
 /// [CartRepository] backed by the Shopify Storefront Cart API.
 class CartRepositoryImpl implements CartRepository {
-  const CartRepositoryImpl(this._client);
+  const CartRepositoryImpl(this._client, {required this.countryCode});
 
   final ApiClient _client;
+
+  /// Tenant market country (ISO code) that pins cart pricing/availability.
+  final String countryCode;
 
   static const _model = 'CartRepository';
 
@@ -24,7 +27,10 @@ class CartRepositoryImpl implements CartRepository {
     try {
       final data = await _client.query(
         kCartCreateMutation,
-        variables: {'lines': _lineInputs(variantId, quantity)},
+        variables: {
+          'lines': _lineInputs(variantId, quantity),
+          'countryCode': countryCode,
+        },
       );
       return _parsePayload(data, 'cartCreate');
     } on ShopifyException catch (e) {

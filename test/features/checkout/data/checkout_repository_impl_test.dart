@@ -34,7 +34,7 @@ void main() {
 
   setUp(() {
     client = MockApiClient();
-    repo = CheckoutRepositoryImpl(client);
+    repo = CheckoutRepositoryImpl(client, countryCode: 'IN');
   });
 
   group('updateBuyerAddress', () {

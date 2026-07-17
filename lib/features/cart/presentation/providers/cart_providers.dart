@@ -6,14 +6,19 @@ import 'package:shopify_app/core/result/result.dart';
 import 'package:shopify_app/core/storage/cart_storage.dart';
 import 'package:shopify_app/features/cart/data/cart_repository_impl.dart';
 import 'package:shopify_app/features/cart/domain/cart_repository.dart';
+import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/providers/shopify_providers.dart';
 import 'package:shopify_app/providers/storage_providers.dart';
 import 'package:shopify_app/shopify/models/cart.dart';
 import 'package:shopify_app/shopify/models/money.dart';
 
-/// Cart repository, wired to the Storefront `ApiClient`.
+/// Cart repository, wired to the Storefront `ApiClient` and the tenant's
+/// market country (so cart pricing/availability resolve in the right market).
 final cartRepositoryProvider = Provider<CartRepository>(
-  (ref) => CartRepositoryImpl(ref.watch(apiClientProvider)),
+  (ref) => CartRepositoryImpl(
+    ref.watch(apiClientProvider),
+    countryCode: ref.watch(appConfigProvider).defaultCountry,
+  ),
 );
 
 /// The active guest cart, or `null` when nothing has been added yet.
@@ -100,8 +105,9 @@ class CartNotifier extends AsyncNotifier<Cart?> {
       if (id == null) return _repo.createCart(variantId, quantity);
 
       final result = await _repo.addLine(id, variantId, quantity);
-      if (result case Success(:final value)
-          when !value.lines.any((line) => line.variantId == variantId)) {
+      if (result case Success(
+        :final value,
+      ) when !value.lines.any((line) => line.variantId == variantId)) {
         unawaited(_storage.clearCartId());
         _cartId = null;
         return _repo.createCart(variantId, quantity);
