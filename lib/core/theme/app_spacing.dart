@@ -13,6 +13,9 @@ abstract final class AppDimensions {
   static const double radiusMd = 12;
   static const double radiusLg = 20;
 
+  /// Thin 1px border / divider stroke.
+  static const double hairline = 1;
+
   static const double cardRadius = 8;
 
   static const double buttonHeight = 52;
