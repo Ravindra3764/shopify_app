@@ -6,6 +6,8 @@ import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart';
+import 'package:shopify_app/features/checkout/domain/order_confirmation.dart';
+import 'package:shopify_app/features/checkout/presentation/providers/checkout_providers.dart';
 import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
@@ -103,8 +105,22 @@ class _CheckoutPaymentScreenState extends ConsumerState<CheckoutPaymentScreen> {
   Future<void> _complete() async {
     if (_completed) return;
     _completed = true;
+    // Snapshot the paid cart before clearing it, so the confirmation screen
+    // can show the order details.
+    final checkout = ref.read(checkoutProvider).valueOrNull;
+    final confirmation = checkout == null
+        ? null
+        : OrderConfirmation(
+            lines: checkout.cart.lines,
+            subtotal: checkout.cart.subtotal,
+            total: checkout.cart.total,
+            email: checkout.email,
+            address: checkout.selectedAddress,
+            shipping: checkout.cart.selectedShipping,
+            tax: checkout.cart.tax,
+          );
     await ref.read(cartProvider.notifier).clearCart();
-    if (mounted) context.go(AppRoutes.orderConfirmed);
+    if (mounted) context.go(AppRoutes.orderConfirmed, extra: confirmation);
   }
 
   @override

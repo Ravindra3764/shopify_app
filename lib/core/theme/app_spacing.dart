@@ -59,6 +59,12 @@ abstract final class AppDimensions {
   static const double cartThumbSize = 96;
   static const double cartSummaryShimmerHeight = 180;
 
+  /// Line-item thumbnail on the order confirmation screen.
+  static const double orderThumbSize = 56;
+
+  /// Diameter of the animated success badge on the confirmation screen.
+  static const double successBadgeSize = 96;
+
   /// Diameter of the count badge overlaid on a cart icon.
   static const double cartBadgeSize = 18;
 }

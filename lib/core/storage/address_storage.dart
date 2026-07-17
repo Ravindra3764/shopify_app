@@ -52,9 +52,7 @@ class SharedPrefsAddressStorage implements AddressStorage {
 
   @override
   Future<void> writeAddresses(List<MailingAddress> addresses) {
-    final payload = jsonEncode(
-      addresses.map((a) => a.toJson()).toList(),
-    );
+    final payload = jsonEncode(addresses.map((a) => a.toJson()).toList());
     return _prefs.setString(_addressesKey, payload);
   }
 

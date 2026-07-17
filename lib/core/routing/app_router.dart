@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/routing/app_shell.dart';
 import 'package:shopify_app/features/cart/presentation/screens/cart_screen.dart';
+import 'package:shopify_app/features/checkout/domain/order_confirmation.dart';
 import 'package:shopify_app/features/checkout/presentation/screens/checkout_payment_screen.dart';
 import 'package:shopify_app/features/checkout/presentation/screens/checkout_screen.dart';
 import 'package:shopify_app/features/checkout/presentation/screens/order_confirmed_screen.dart';
@@ -89,7 +90,11 @@ GoRouter createRouter() {
       ),
       GoRoute(
         path: AppRoutes.orderConfirmed,
-        builder: (context, state) => const OrderConfirmedScreen(),
+        builder: (context, state) => OrderConfirmedScreen(
+          confirmation: state.extra is OrderConfirmation
+              ? state.extra! as OrderConfirmation
+              : null,
+        ),
       ),
     ],
   );
