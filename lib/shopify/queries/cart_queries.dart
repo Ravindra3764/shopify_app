@@ -9,6 +9,10 @@ fragment CartFields on Cart {
   checkoutUrl
   totalQuantity
   buyerIdentity { email }
+  discountCodes { code applicable }
+  discountAllocations {
+    discountedAmount { amount currencyCode }
+  }
   cost {
     subtotalAmount { amount currencyCode }
     totalAmount { amount currencyCode }

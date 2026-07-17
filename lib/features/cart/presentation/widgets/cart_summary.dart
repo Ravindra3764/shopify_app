@@ -4,29 +4,100 @@ import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
 import 'package:shopify_app/shopify/models/cart.dart';
 
-/// Promo-code entry plus the Subtotal / Shipping / Tax / Total breakdown.
+/// Promo-code entry, applied-code chips, and the Subtotal / Discount /
+/// Shipping / Tax / Total breakdown.
 ///
-/// Promo codes aren't wired to the Storefront discount mutation yet — the
-/// [onApplyPromo] callback surfaces the entered code so the screen can
-/// decide what to do (currently a "coming soon" notice).
+/// [onApplyPromo] submits an entered code; [onRemovePromo] clears an applied
+/// one. Both drive the Storefront `cartDiscountCodesUpdate` mutation via the
+/// cart notifier.
 class CartSummary extends StatelessWidget {
   const CartSummary({
     required this.cart,
     required this.onApplyPromo,
+    required this.onRemovePromo,
     super.key,
   });
 
   final Cart cart;
   final ValueChanged<String> onApplyPromo;
+  final ValueChanged<String> onRemovePromo;
 
   @override
   Widget build(BuildContext context) {
+    final applied = cart.appliedDiscountCodes;
     return Column(
       children: [
         _PromoCodeField(onApply: onApplyPromo),
+        if (applied.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.md),
+          _AppliedCodes(
+            codes: [for (final c in applied) c.code],
+            onRemove: onRemovePromo,
+          ),
+        ],
         const SizedBox(height: AppSpacing.lg),
         _TotalsCard(cart: cart),
       ],
+    );
+  }
+}
+
+/// Removable chips for each applied discount code.
+class _AppliedCodes extends StatelessWidget {
+  const _AppliedCodes({required this.codes, required this.onRemove});
+
+  final List<String> codes;
+  final ValueChanged<String> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Wrap(
+        spacing: AppSpacing.sm,
+        runSpacing: AppSpacing.sm,
+        children: [
+          for (final code in codes)
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+                border: Border.all(color: AppColors.primary),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.local_offer_outlined,
+                    size: AppDimensions.iconSm,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    code,
+                    style: textTheme.labelLarge?.copyWith(
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  InkWell(
+                    onTap: () => onRemove(code),
+                    child: Icon(
+                      Icons.close,
+                      size: AppDimensions.iconSm,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
@@ -53,6 +124,7 @@ class _PromoCodeFieldState extends State<_PromoCodeField> {
     final code = _controller.text.trim();
     if (code.isEmpty) return;
     widget.onApply(code);
+    _controller.clear();
   }
 
   @override
@@ -114,6 +186,14 @@ class _TotalsCard extends StatelessWidget {
       child: Column(
         children: [
           _SummaryRow(label: 'Subtotal', value: cart.subtotal.formatted),
+          if (cart.discount case final discount?) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _SummaryRow(
+              label: 'Discount',
+              value: '-${discount.formatted}',
+              highlighted: true,
+            ),
+          ],
           const SizedBox(height: AppSpacing.sm),
           const _SummaryRow(label: 'Shipping', value: 'Calculated at checkout'),
           const SizedBox(height: AppSpacing.sm),
@@ -141,11 +221,15 @@ class _SummaryRow extends StatelessWidget {
     required this.label,
     required this.value,
     this.emphasized = false,
+    this.highlighted = false,
   });
 
   final String label;
   final String value;
   final bool emphasized;
+
+  /// Tints the row with the brand primary — used for the discount saving.
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
@@ -155,7 +239,9 @@ class _SummaryRow extends StatelessWidget {
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w700,
           )
-        : textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary);
+        : textTheme.bodyMedium?.copyWith(
+            color: highlighted ? AppColors.primary : AppColors.textSecondary,
+          );
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,

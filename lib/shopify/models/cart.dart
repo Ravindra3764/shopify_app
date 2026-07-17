@@ -1,4 +1,5 @@
 import 'package:shopify_app/core/utils/json_parse.dart';
+import 'package:shopify_app/shopify/models/cart_discount_code.dart';
 import 'package:shopify_app/shopify/models/cart_line.dart';
 import 'package:shopify_app/shopify/models/delivery_group.dart';
 import 'package:shopify_app/shopify/models/money.dart';
@@ -16,8 +17,10 @@ class Cart {
     required this.total,
     required this.lines,
     this.tax,
+    this.discount,
     this.buyerEmail,
     this.deliveryGroups = const [],
+    this.discountCodes = const [],
   });
 
   /// Builds from a Storefront `Cart` node.
@@ -25,15 +28,41 @@ class Cart {
     final cost = parseMap(json, 'cost', model: _model);
     final taxMap = parseMap(cost, 'totalTaxAmount', model: _model);
     final buyer = parseMap(json, 'buyerIdentity', model: _model);
+    final total = Money.fromJson(parseMap(cost, 'totalAmount', model: _model));
+
+    // Sum of all order-level code discounts applied to the cart.
+    final discountAmount = parseList<double>(
+      json,
+      'discountAllocations',
+      model: _model,
+      fromItem: (item) {
+        final map = item is Map<String, dynamic> ? item : <String, dynamic>{};
+        final amount = parseMap(map, 'discountedAmount', model: _model);
+        return amount.isEmpty
+            ? 0.0
+            : parseDouble(amount, 'amount', model: _model);
+      },
+    ).fold<double>(0, (sum, amount) => sum + amount);
 
     return Cart(
       id: parseString(json, 'id', model: _model),
       checkoutUrl: parseString(json, 'checkoutUrl', model: _model),
       totalQuantity: parseInt(json, 'totalQuantity', model: _model),
       subtotal: Money.fromJson(parseMap(cost, 'subtotalAmount', model: _model)),
-      total: Money.fromJson(parseMap(cost, 'totalAmount', model: _model)),
+      total: total,
       // Tax is null until an address is known (guest cart, pre-checkout).
       tax: taxMap.isEmpty ? null : Money.fromJson(taxMap),
+      discount: discountAmount > 0
+          ? Money(amount: discountAmount, currencyCode: total.currencyCode)
+          : null,
+      discountCodes: parseList<CartDiscountCode>(
+        json,
+        'discountCodes',
+        model: _model,
+        fromItem: (item) => CartDiscountCode.fromJson(
+          item is Map<String, dynamic> ? item : <String, dynamic>{},
+        ),
+      ),
       buyerEmail: buyer.isEmpty
           ? null
           : parseStringOrNull(buyer, 'email', model: _model),
@@ -77,8 +106,10 @@ class Cart {
       subtotal: Money(amount: amount, currencyCode: subtotal.currencyCode),
       total: Money(amount: amount, currencyCode: total.currencyCode),
       tax: tax,
+      discount: discount,
       buyerEmail: buyerEmail,
       deliveryGroups: deliveryGroups,
+      discountCodes: discountCodes,
       lines: lines,
     );
   }
@@ -98,6 +129,14 @@ class Cart {
   /// Estimated tax; `null` before an address is provided.
   final Money? tax;
 
+  /// Total order-level discount from applied promo codes; `null` when no
+  /// applicable code reduces the cart.
+  final Money? discount;
+
+  /// Discount codes attached to the cart, each flagged
+  /// [CartDiscountCode.applicable].
+  final List<CartDiscountCode> discountCodes;
+
   /// Buyer email attached via `cartBuyerIdentityUpdate`; `null` for a fresh
   /// guest cart.
   final String? buyerEmail;
@@ -108,6 +147,12 @@ class Cart {
 
   /// Whether the cart holds no lines.
   bool get isEmpty => lines.isEmpty;
+
+  /// Codes that are actually reducing the total (Shopify accepted + applied).
+  List<CartDiscountCode> get appliedDiscountCodes => [
+    for (final c in discountCodes)
+      if (c.applicable) c,
+  ];
 
   /// The selected shipping cost across all delivery groups, or `null` when no
   /// option has been chosen yet.

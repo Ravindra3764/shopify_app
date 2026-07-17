@@ -30,4 +30,13 @@ abstract interface class CartRepository {
 
   /// Removes the line [lineId] from cart [cartId].
   Future<Result<Cart, Failure>> removeLine(String cartId, String lineId);
+
+  /// Replaces the discount codes on cart [cartId] with [codes] (send the full
+  /// set; an empty list clears all). Shopify flags each returned code
+  /// `applicable`, so a bad code succeeds at the transport level but comes back
+  /// non-applicable rather than as a [Failure].
+  Future<Result<Cart, Failure>> updateDiscountCodes(
+    String cartId,
+    List<String> codes,
+  );
 }

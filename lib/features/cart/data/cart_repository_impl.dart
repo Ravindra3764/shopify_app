@@ -116,6 +116,22 @@ class CartRepositoryImpl implements CartRepository {
     }
   }
 
+  @override
+  Future<Result<Cart, Failure>> updateDiscountCodes(
+    String cartId,
+    List<String> codes,
+  ) async {
+    try {
+      final data = await _client.query(
+        kCartDiscountCodesUpdateMutation,
+        variables: {'cartId': cartId, 'discountCodes': codes},
+      );
+      return _parsePayload(data, 'cartDiscountCodesUpdate');
+    } on ShopifyException catch (e) {
+      return Failed(Failure.fromShopify(e));
+    }
+  }
+
   List<Map<String, dynamic>> _lineInputs(String variantId, int quantity) => [
     {'merchandiseId': variantId, 'quantity': quantity},
   ];

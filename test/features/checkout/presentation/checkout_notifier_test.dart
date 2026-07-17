@@ -178,6 +178,28 @@ void main() {
       expect(state.cart.needsDeliverySelection, isTrue);
     });
 
+    test(
+      'applyAddress stops on shipping even when a rate is pre-selected',
+      () async {
+        // Shopify pre-selects a default rate, so the returned cart already has a
+        // selection — the wizard must still show the shipping step to let the
+        // shopper see/change it, not skip to review.
+        final container = _container(
+          repo: _FakeCheckoutRepository(addressResult: Success(_selectedCart)),
+        );
+        await container.read(cartProvider.future);
+        await container.read(checkoutProvider.future);
+
+        await container
+            .read(checkoutProvider.notifier)
+            .applyAddress(email: 'a@b.com', address: _address);
+
+        final state = container.read(checkoutProvider).value!;
+        expect(state.cart.needsDeliverySelection, isFalse);
+        expect(state.step, CheckoutStep.delivery);
+      },
+    );
+
     test('selectDelivery then proceedToReview advances to review', () async {
       final container = _container();
       await container.read(cartProvider.future);

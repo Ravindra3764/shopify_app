@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/core/error/failure.dart';
 import 'package:shopify_app/core/storage/address_storage.dart';
-import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart';
+import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart'
+    show PromoOutcome, cartProvider, cartRepositoryProvider;
 import 'package:shopify_app/features/checkout/data/checkout_repository_impl.dart';
 import 'package:shopify_app/features/checkout/domain/checkout_repository.dart';
 import 'package:shopify_app/features/checkout/presentation/providers/checkout_state.dart';
@@ -156,6 +157,75 @@ class CheckoutNotifier extends AutoDisposeAsyncNotifier<CheckoutState> {
     );
   }
 
+  /// Applies promo [code] to the checkout cart, merging with any already-
+  /// applicable codes. Returns a [PromoOutcome] for the UI to message. Reuses
+  /// the cart repository's discount mutation (same underlying Storefront cart).
+  Future<PromoOutcome> applyPromoCode(String code) async {
+    final current = state.valueOrNull;
+    final normalized = code.trim();
+    if (current == null || normalized.isEmpty) return PromoOutcome.error;
+
+    final codes = <String>[
+      for (final c in current.cart.discountCodes)
+        if (c.applicable) c.code,
+    ];
+    if (!codes.any((c) => c.toLowerCase() == normalized.toLowerCase())) {
+      codes.add(normalized);
+    }
+
+    final cart = await _applyDiscountCodes(current.cart.id, codes);
+    if (cart == null) return PromoOutcome.error;
+
+    final applicable = cart.discountCodes.any(
+      (c) => c.code.toLowerCase() == normalized.toLowerCase() && c.applicable,
+    );
+    if (applicable) return PromoOutcome.applied;
+
+    // Non-applicable — strip it back out so it doesn't linger on the cart.
+    final valid = [
+      for (final c in cart.discountCodes)
+        if (c.applicable) c.code,
+    ];
+    await _applyDiscountCodes(current.cart.id, valid);
+    return PromoOutcome.notApplicable;
+  }
+
+  /// Removes promo [code] from the checkout cart.
+  Future<void> removePromoCode(String code) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final remaining = <String>[
+      for (final c in current.cart.discountCodes)
+        if (c.code.toLowerCase() != code.toLowerCase()) c.code,
+    ];
+    await _applyDiscountCodes(current.cart.id, remaining);
+  }
+
+  /// Sends [codes] to Shopify and folds the returned cart into the checkout
+  /// state (preserving step/address/email). Returns the new cart, or `null` on
+  /// failure (state set to error).
+  Future<Cart?> _applyDiscountCodes(String cartId, List<String> codes) async {
+    final current = state.valueOrNull;
+    if (current == null) return null;
+    state = const AsyncLoading<CheckoutState>().copyWithPrevious(state);
+    final result = await ref
+        .read(cartRepositoryProvider)
+        .updateDiscountCodes(cartId, codes);
+    return result.fold(
+      (cart) {
+        state = AsyncData(current.copyWith(cart: cart));
+        return cart;
+      },
+      (failure) {
+        state = AsyncError<CheckoutState>(
+          failure,
+          StackTrace.current,
+        ).copyWithPrevious(state);
+        return null;
+      },
+    );
+  }
+
   /// Advances from the shipping step to the review step. No-op if a delivery
   /// selection is still outstanding.
   void proceedToReview() {
@@ -182,10 +252,9 @@ class CheckoutNotifier extends AutoDisposeAsyncNotifier<CheckoutState> {
     return true;
   }
 
-  CheckoutStep _stepAfterAddress(Cart cart) {
-    if (!cart.hasDeliveryOptions) return CheckoutStep.review;
-    return cart.needsDeliverySelection
-        ? CheckoutStep.delivery
-        : CheckoutStep.review;
-  }
+  // Always stop on the shipping step when the address yields delivery options,
+  // even though Shopify pre-selects a default rate — the shopper should see and
+  // be able to change the shipping method rather than skip straight to review.
+  CheckoutStep _stepAfterAddress(Cart cart) =>
+      cart.hasDeliveryOptions ? CheckoutStep.delivery : CheckoutStep.review;
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -60,6 +62,35 @@ class _CartContent extends ConsumerWidget {
 
   final Cart cart;
 
+  Future<void> _applyPromo(
+    BuildContext context,
+    CartNotifier notifier,
+    String code,
+  ) async {
+    final outcome = await notifier.applyPromoCode(code);
+    if (!context.mounted) return;
+    switch (outcome) {
+      case PromoOutcome.applied:
+        showAppSnackBar(
+          context,
+          'Promo code applied.',
+          icon: Icons.check_circle_outline,
+        );
+      case PromoOutcome.notApplicable:
+        showAppSnackBar(
+          context,
+          "That code can't be applied to this cart.",
+          icon: Icons.error_outline,
+        );
+      case PromoOutcome.error:
+        showAppSnackBar(
+          context,
+          "Couldn't apply the code. Please try again.",
+          icon: Icons.error_outline,
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
@@ -108,11 +139,9 @@ class _CartContent extends ConsumerWidget {
           ],
           CartSummary(
             cart: cart,
-            onApplyPromo: (_) => showAppSnackBar(
-              context,
-              'Promo codes are on the way.',
-              icon: Icons.local_offer_outlined,
-            ),
+            onApplyPromo: (code) =>
+                unawaited(_applyPromo(context, notifier, code)),
+            onRemovePromo: (code) => unawaited(notifier.removePromoCode(code)),
           ),
           const SizedBox(height: AppSpacing.lg),
           CustomButton.primary(

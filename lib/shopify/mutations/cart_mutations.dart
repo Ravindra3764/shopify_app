@@ -41,6 +41,19 @@ mutation CartLinesUpdate(\$cartId: ID!, \$lines: [CartLineUpdateInput!]!) {
 }
 $kCartFragment''';
 
+/// Replaces the cart's discount codes with [\$discountCodes] (send the full set
+/// each time — it's a replace, not a merge). Shopify echoes each code back with
+/// `applicable`: `false` means invalid or not usable on this cart (unmet
+/// minimum, wrong products, expired). An empty/absent list clears all codes.
+const String kCartDiscountCodesUpdateMutation = '''
+mutation CartDiscountCodesUpdate(\$cartId: ID!, \$discountCodes: [String!]) {
+  cartDiscountCodesUpdate(cartId: \$cartId, discountCodes: \$discountCodes) {
+    cart { ...CartFields }
+    userErrors { field message }
+  }
+}
+$kCartFragment''';
+
 /// Removes lines from a cart by their line IDs.
 const String kCartLinesRemoveMutation = '''
 mutation CartLinesRemove(\$cartId: ID!, \$lineIds: [ID!]!) {

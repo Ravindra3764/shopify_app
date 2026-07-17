@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +7,8 @@ import 'package:shopify_app/core/error/failure.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart'
+    show PromoOutcome;
 import 'package:shopify_app/features/checkout/presentation/providers/checkout_providers.dart';
 import 'package:shopify_app/features/checkout/presentation/providers/checkout_state.dart';
 import 'package:shopify_app/features/checkout/presentation/widgets/address_book_selector.dart';
@@ -337,6 +341,37 @@ class _ReviewStep extends ConsumerWidget {
 
   final CheckoutState state;
 
+  Future<void> _applyPromo(
+    BuildContext context,
+    WidgetRef ref,
+    String code,
+  ) async {
+    final outcome = await ref
+        .read(checkoutProvider.notifier)
+        .applyPromoCode(code);
+    if (!context.mounted) return;
+    switch (outcome) {
+      case PromoOutcome.applied:
+        showAppSnackBar(
+          context,
+          'Promo code applied.',
+          icon: Icons.check_circle_outline,
+        );
+      case PromoOutcome.notApplicable:
+        showAppSnackBar(
+          context,
+          "That code can't be applied to this order.",
+          icon: Icons.error_outline,
+        );
+      case PromoOutcome.error:
+        showAppSnackBar(
+          context,
+          "Couldn't apply the code. Please try again.",
+          icon: Icons.error_outline,
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final flags = ref.watch(featureFlagsProvider);
@@ -363,10 +398,9 @@ class _ReviewStep extends ConsumerWidget {
         CheckoutSummary(
           cart: state.cart,
           showPromo: flags.promoCodesEnabled,
-          onApplyPromo: (_) => showAppSnackBar(
-            context,
-            'Promo codes are on the way.',
-            icon: Icons.local_offer_outlined,
+          onApplyPromo: (code) => unawaited(_applyPromo(context, ref, code)),
+          onRemovePromo: (code) => unawaited(
+            ref.read(checkoutProvider.notifier).removePromoCode(code),
           ),
           onPay: () => context.push(
             AppRoutes.checkoutPay,
