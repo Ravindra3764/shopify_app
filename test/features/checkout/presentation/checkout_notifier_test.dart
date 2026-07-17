@@ -200,6 +200,30 @@ void main() {
       expect(state.step, CheckoutStep.review);
     });
 
+    test('applyAddress flags an unserviceable (zeroed) address', () async {
+      final zeroed = Cart(
+        id: 'gid://shopify/Cart/abc123',
+        checkoutUrl: 'x',
+        totalQuantity: 0,
+        subtotal: _usd(0),
+        total: _usd(0),
+        lines: const [],
+      );
+      final container = _container(
+        repo: _FakeCheckoutRepository(addressResult: Success(zeroed)),
+      );
+      await container.read(cartProvider.future);
+      await container.read(checkoutProvider.future);
+
+      await container
+          .read(checkoutProvider.notifier)
+          .applyAddress(email: 'a@b.com', address: _address);
+
+      final state = container.read(checkoutProvider).value!;
+      expect(state.step, CheckoutStep.address);
+      expect(state.error, isNotNull);
+    });
+
     test('applyAddress surfaces failure as error state', () async {
       final container = _container(
         repo: _FakeCheckoutRepository(

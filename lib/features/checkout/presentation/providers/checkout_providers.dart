@@ -93,6 +93,20 @@ class CheckoutNotifier extends AutoDisposeAsyncNotifier<CheckoutState> {
     );
     state = result.fold(
       (cart) {
+        // Shopify zeroes the cart (lines → qty 0, cost → 0) when the address
+        // is in a market the store doesn't sell/ship to — with no userError.
+        // Surface it inline and stay on the address step.
+        if (cart.isEmpty || cart.totalQuantity == 0) {
+          return AsyncData(
+            current.copyWith(
+              email: email,
+              selectedAddress: address,
+              error:
+                  "We can't deliver to this address. Please try a different "
+                  'one.',
+            ),
+          );
+        }
         unawaited(ref.read(addressStorageProvider).writeEmail(email));
         return AsyncData(
           current.copyWith(
@@ -100,6 +114,7 @@ class CheckoutNotifier extends AutoDisposeAsyncNotifier<CheckoutState> {
             email: email,
             selectedAddress: address,
             step: _stepAfterAddress(cart),
+            error: null,
           ),
         );
       },
@@ -110,8 +125,10 @@ class CheckoutNotifier extends AutoDisposeAsyncNotifier<CheckoutState> {
     );
   }
 
-  /// Selects shipping option [optionHandle] for [deliveryGroupId], then moves
-  /// to the review step with the shipping-inclusive total.
+  /// Selects shipping option [optionHandle] for [deliveryGroupId], updating the
+  /// cart with the shipping-inclusive total. Stays on the shipping step so the
+  /// shopper can review the choice (or pick options for other groups) before
+  /// continuing via [proceedToReview].
   Future<void> selectDelivery({
     required String deliveryGroupId,
     required String optionHandle,
@@ -126,13 +143,20 @@ class CheckoutNotifier extends AutoDisposeAsyncNotifier<CheckoutState> {
       optionHandle: optionHandle,
     );
     state = result.fold(
-      (cart) =>
-          AsyncData(current.copyWith(cart: cart, step: CheckoutStep.review)),
+      (cart) => AsyncData(current.copyWith(cart: cart)),
       (failure) => AsyncError<CheckoutState>(
         failure,
         StackTrace.current,
       ).copyWithPrevious(state),
     );
+  }
+
+  /// Advances from the shipping step to the review step. No-op if a delivery
+  /// selection is still outstanding.
+  void proceedToReview() {
+    final current = state.valueOrNull;
+    if (current == null || current.cart.needsDeliverySelection) return;
+    state = AsyncData(current.copyWith(step: CheckoutStep.review));
   }
 
   /// Steps the wizard back one stage. Returns `false` when already on the
@@ -143,9 +167,10 @@ class CheckoutNotifier extends AutoDisposeAsyncNotifier<CheckoutState> {
     final previous = switch (current.step) {
       CheckoutStep.address => null,
       CheckoutStep.delivery => CheckoutStep.address,
-      CheckoutStep.review => current.cart.hasDeliveryOptions
-          ? CheckoutStep.delivery
-          : CheckoutStep.address,
+      CheckoutStep.review =>
+        current.cart.hasDeliveryOptions
+            ? CheckoutStep.delivery
+            : CheckoutStep.address,
     };
     if (previous == null) return false;
     state = AsyncData(current.copyWith(step: previous));

@@ -191,9 +191,40 @@ class _AddressStepState extends ConsumerState<_AddressStep> {
     final isSubmitting = ref.watch(checkoutProvider).isLoading;
     final textTheme = Theme.of(context).textTheme;
 
+    final error = widget.state.error;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (error != null) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: AppColors.error,
+                  size: AppDimensions.iconMd,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    error,
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: AppColors.error,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+        ],
         Form(
           key: _emailKey,
           child: CustomTextBox(

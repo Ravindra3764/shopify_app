@@ -29,7 +29,10 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
           'cartId': cartId,
           'buyerIdentity': {
             'email': email,
-            'countryCode': address.country.toUpperCase(),
+            // Deliberately NOT sending `countryCode`: it switches the cart to
+            // that Shopify Market, and if the store doesn't sell there the
+            // whole cart zeroes out (cost + line quantities → 0) with no
+            // userError. The delivery address below still drives shipping.
             'deliveryAddressPreferences': [
               {'deliveryAddress': address.toInput()},
             ],
