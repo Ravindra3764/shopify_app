@@ -18,12 +18,17 @@ class AddressForm extends StatefulWidget {
     this.initialAddress,
     this.phoneRequired = false,
     this.submitLabel = 'Save address',
+    this.defaultCountry = 'US',
   });
 
   final ValueChanged<MailingAddress> onSubmit;
   final MailingAddress? initialAddress;
   final bool phoneRequired;
   final String submitLabel;
+
+  /// ISO country code prefilled when adding a new address (tenant home
+  /// country). Ignored when editing an existing [initialAddress].
+  final String defaultCountry;
 
   @override
   State<AddressForm> createState() => _AddressFormState();
@@ -50,7 +55,7 @@ class _AddressFormState extends State<AddressForm> {
   );
   late final _zip = TextEditingController(text: widget.initialAddress?.zip);
   late final _country = TextEditingController(
-    text: widget.initialAddress?.country,
+    text: widget.initialAddress?.country ?? widget.defaultCountry,
   );
   late final _phone = TextEditingController(text: widget.initialAddress?.phone);
 

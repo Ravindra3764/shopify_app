@@ -142,6 +142,7 @@ class _AddressStepState extends ConsumerState<_AddressStep> {
     final address = await showAddressFormSheet(
       context,
       phoneRequired: phoneRequired,
+      defaultCountry: ref.read(appConfigProvider).defaultCountry,
     );
     if (address == null) return;
     if (bookEnabled) {

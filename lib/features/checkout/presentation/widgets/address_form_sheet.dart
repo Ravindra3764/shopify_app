@@ -13,6 +13,7 @@ Future<MailingAddress?> showAddressFormSheet(
   BuildContext context, {
   MailingAddress? initial,
   bool phoneRequired = false,
+  String defaultCountry = 'US',
 }) {
   return showModalBottomSheet<MailingAddress>(
     context: context,
@@ -48,6 +49,7 @@ Future<MailingAddress?> showAddressFormSheet(
               AddressForm(
                 initialAddress: initial,
                 phoneRequired: phoneRequired,
+                defaultCountry: defaultCountry,
                 onSubmit: (address) => Navigator.of(sheetContext).pop(address),
               ),
             ],
