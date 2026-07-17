@@ -15,6 +15,15 @@ abstract final class AppRoutes {
   /// Profile tab route.
   static const String profile = '/profile';
 
+  /// Checkout wizard (address → shipping → review).
+  static const String checkout = '/checkout';
+
+  /// Hosted payment page (in-app WebView or external browser).
+  static const String checkoutPay = '/checkout/pay';
+
+  /// Order confirmation shown after successful payment.
+  static const String orderConfirmed = '/checkout/confirmed';
+
   /// Collection product grid; deep-link pattern `/collection/:handle`.
   static const String collection = '/collection/:handle';
 

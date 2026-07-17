@@ -122,11 +122,7 @@ class _CartContent extends ConsumerWidget {
               size: AppDimensions.iconSm,
               color: AppColors.white,
             ),
-            onPressed: () => showAppSnackBar(
-              context,
-              'Secure checkout is on the way.',
-              icon: Icons.lock_outline,
-            ),
+            onPressed: () => context.push(AppRoutes.checkout),
           ),
           const SizedBox(height: AppSpacing.md),
           Center(

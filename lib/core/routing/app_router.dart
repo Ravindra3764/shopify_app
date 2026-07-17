@@ -2,6 +2,9 @@ import 'package:go_router/go_router.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/routing/app_shell.dart';
 import 'package:shopify_app/features/cart/presentation/screens/cart_screen.dart';
+import 'package:shopify_app/features/checkout/presentation/screens/checkout_payment_screen.dart';
+import 'package:shopify_app/features/checkout/presentation/screens/checkout_screen.dart';
+import 'package:shopify_app/features/checkout/presentation/screens/order_confirmed_screen.dart';
 import 'package:shopify_app/features/home/presentation/screens/home_screen.dart';
 import 'package:shopify_app/features/product_detail/presentation/screens/product_detail_screen.dart';
 import 'package:shopify_app/features/product_listing/presentation/screens/collection_screen.dart';
@@ -71,6 +74,22 @@ GoRouter createRouter() {
           final handle = state.pathParameters['handle'] ?? '';
           return ProductDetailScreen(handle: handle);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.checkout,
+        builder: (context, state) => const CheckoutScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.checkoutPay,
+        builder: (context, state) {
+          // Hosted checkout URL passed as typed `extra` from the review step.
+          final url = state.extra is String ? state.extra! as String : '';
+          return CheckoutPaymentScreen(checkoutUrl: url);
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.orderConfirmed,
+        builder: (context, state) => const OrderConfirmedScreen(),
       ),
     ],
   );
