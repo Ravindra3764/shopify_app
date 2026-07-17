@@ -82,15 +82,32 @@ class CheckoutSummary extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.lg),
-        CustomButton.primary(
-          label: 'Pay ${cart.total.formatted}',
-          isLoading: isPaying,
-          leadingIcon: const Icon(
-            Icons.lock_outline,
-            size: AppDimensions.iconSm,
-            color: AppColors.white,
-          ),
-          onPressed: isPaying ? null : onPay,
+        Builder(
+          builder: (context) {
+            // Never allow paying a zeroed order (e.g. an unserviceable
+            // address Shopify silently zeroed).
+            final payable = cart.total.amount > 0;
+            if (!payable) {
+              return Text(
+                'This order total is unavailable. Please revisit your '
+                'delivery address.',
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.error),
+              );
+            }
+            return CustomButton.primary(
+              label: 'Pay ${cart.total.formatted}',
+              isLoading: isPaying,
+              leadingIcon: const Icon(
+                Icons.lock_outline,
+                size: AppDimensions.iconSm,
+                color: AppColors.white,
+              ),
+              onPressed: isPaying ? null : onPay,
+            );
+          },
         ),
       ],
     );
