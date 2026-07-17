@@ -44,6 +44,23 @@ class Cart {
     );
   }
 
+  /// Copies this cart with new [lines], recomputing [totalQuantity] and the
+  /// [subtotal]/[total] from the lines. Used for optimistic stepper updates
+  /// before the Storefront response lands; tax/shipping stay untouched.
+  Cart withLines(List<CartLine> lines) {
+    final quantity = lines.fold(0, (sum, l) => sum + l.quantity);
+    final amount = lines.fold<double>(0, (sum, l) => sum + l.lineTotal.amount);
+    return Cart(
+      id: id,
+      checkoutUrl: checkoutUrl,
+      totalQuantity: quantity,
+      subtotal: Money(amount: amount, currencyCode: subtotal.currencyCode),
+      total: Money(amount: amount, currencyCode: total.currencyCode),
+      tax: tax,
+      lines: lines,
+    );
+  }
+
   static const _model = 'Cart';
 
   final String id;

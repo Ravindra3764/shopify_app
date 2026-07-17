@@ -29,7 +29,7 @@ class HomeScreen extends ConsumerWidget {
       child: SafeArea(
         child: Column(
           children: [
-            const HomeHeader(),
+            HomeHeader(onCart: () => context.go(AppRoutes.cart)),
             Expanded(
               child: homeAsync.when(
                 data: _HomeContent.new,

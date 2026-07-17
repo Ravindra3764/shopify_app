@@ -15,6 +15,7 @@ class CartLine {
     required this.lineTotal,
     required this.selectedOptions,
     this.image,
+    this.quantityAvailable,
   });
 
   /// Builds from a Storefront `CartLine` node (with `merchandise` resolved as
@@ -54,6 +55,11 @@ class CartLine {
       image: ShopifyImage.fromJsonOrNull(
         parseMap(merchandise, 'image', model: _model),
       ),
+      quantityAvailable: parseIntOrNull(
+        merchandise,
+        'quantityAvailable',
+        model: _model,
+      ),
     );
   }
 
@@ -79,6 +85,31 @@ class CartLine {
   /// Option name → value, e.g. `{'Size': 'M', 'Color': 'Charcoal'}`.
   final Map<String, String> selectedOptions;
   final ShopifyImage? image;
+
+  /// Units in stock for this variant; `null` when Shopify doesn't track
+  /// inventory (unlimited). Used to cap the cart quantity stepper.
+  final int? quantityAvailable;
+
+  /// Whether the quantity can still be raised — `false` once it hits stock.
+  bool get canIncrease {
+    final stock = quantityAvailable;
+    return stock == null || quantity < stock;
+  }
+
+  /// Copies this line, overriding [quantity] and [lineTotal] for optimistic
+  /// stepper updates before the Storefront response lands.
+  CartLine copyWith({int? quantity, Money? lineTotal}) => CartLine(
+    id: id,
+    variantId: variantId,
+    productTitle: productTitle,
+    variantTitle: variantTitle,
+    quantity: quantity ?? this.quantity,
+    unitPrice: unitPrice,
+    lineTotal: lineTotal ?? this.lineTotal,
+    selectedOptions: selectedOptions,
+    image: image,
+    quantityAvailable: quantityAvailable,
+  );
 
   /// Human-readable option summary, e.g. `M | Charcoal`. Drops Shopify's
   /// synthetic `Default Title` shown on products that have no real variants.

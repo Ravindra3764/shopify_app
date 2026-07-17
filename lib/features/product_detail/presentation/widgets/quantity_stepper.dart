@@ -3,7 +3,8 @@ import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 
 /// Bordered `- qty +` stepper. [onDecrement] is `null` at [quantity] `1`, so
-/// the button disables itself instead of going below one.
+/// the button disables itself instead of going below one. Pass a `null`
+/// [onIncrement] to disable `+` — e.g. when the quantity has reached stock.
 class QuantityStepper extends StatelessWidget {
   const QuantityStepper({
     required this.quantity,
@@ -13,7 +14,7 @@ class QuantityStepper extends StatelessWidget {
   });
 
   final int quantity;
-  final VoidCallback onIncrement;
+  final VoidCallback? onIncrement;
   final VoidCallback? onDecrement;
 
   @override

@@ -55,4 +55,7 @@ abstract final class AppDimensions {
   /// Sizes for the cart screen.
   static const double cartThumbSize = 96;
   static const double cartSummaryShimmerHeight = 180;
+
+  /// Diameter of the count badge overlaid on a cart icon.
+  static const double cartBadgeSize = 18;
 }

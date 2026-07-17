@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart';
 import 'package:shopify_app/providers/config_providers.dart';
 
 /// Home top bar: menu, centered store name, cart.
@@ -32,7 +33,7 @@ class HomeHeader extends ConsumerWidget {
               ),
             ),
           ),
-          _IconButton(icon: Icons.shopping_bag_outlined, onTap: onCart),
+          _CartButton(onTap: onCart, count: ref.watch(cartCountProvider)),
         ],
       ),
     );
@@ -53,6 +54,58 @@ class _IconButton extends StatelessWidget {
         icon,
         size: AppDimensions.iconMd,
         color: AppColors.textPrimary,
+      ),
+    );
+  }
+}
+
+/// Cart icon with a count badge that appears once the cart has items.
+class _CartButton extends StatelessWidget {
+  const _CartButton({required this.count, this.onTap});
+
+  final int count;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkResponse(
+      onTap: onTap,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          const Icon(
+            Icons.shopping_bag_outlined,
+            size: AppDimensions.iconMd,
+            color: AppColors.textPrimary,
+          ),
+          if (count > 0)
+            Positioned(
+              top: -AppSpacing.sm,
+              right: -AppSpacing.sm,
+              child: Container(
+                constraints: const BoxConstraints(
+                  minWidth: AppDimensions.cartBadgeSize,
+                ),
+                height: AppDimensions.cartBadgeSize,
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(
+                    AppDimensions.cartBadgeSize,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  count > 99 ? '99+' : '$count',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
