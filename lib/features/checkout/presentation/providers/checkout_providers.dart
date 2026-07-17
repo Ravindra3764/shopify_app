@@ -1,0 +1,161 @@
+import 'dart:async';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shopify_app/core/error/failure.dart';
+import 'package:shopify_app/core/storage/address_storage.dart';
+import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart';
+import 'package:shopify_app/features/checkout/data/checkout_repository_impl.dart';
+import 'package:shopify_app/features/checkout/domain/checkout_repository.dart';
+import 'package:shopify_app/features/checkout/presentation/providers/checkout_state.dart';
+import 'package:shopify_app/providers/shopify_providers.dart';
+import 'package:shopify_app/providers/storage_providers.dart';
+import 'package:shopify_app/shopify/models/cart.dart';
+import 'package:shopify_app/shopify/models/mailing_address.dart';
+
+/// Checkout repository, wired to the Storefront `ApiClient`.
+final checkoutRepositoryProvider = Provider<CheckoutRepository>(
+  (ref) => CheckoutRepositoryImpl(ref.watch(apiClientProvider)),
+);
+
+/// The shopper's locally-saved delivery addresses, newest-first.
+final addressBookProvider =
+    NotifierProvider<AddressBookNotifier, List<MailingAddress>>(
+      AddressBookNotifier.new,
+    );
+
+/// The in-progress checkout wizard state. `autoDispose` so leaving checkout
+/// resets it — a new checkout always starts from the current cart.
+final checkoutProvider =
+    AsyncNotifierProvider.autoDispose<CheckoutNotifier, CheckoutState>(
+      CheckoutNotifier.new,
+    );
+
+/// Manages the persisted address book.
+class AddressBookNotifier extends Notifier<List<MailingAddress>> {
+  @override
+  List<MailingAddress> build() => _storage.readAddresses();
+
+  AddressStorage get _storage => ref.read(addressStorageProvider);
+
+  /// Saves [address] (newest-first), replacing any entry with the same id.
+  Future<void> add(MailingAddress address) async {
+    final next = [
+      address,
+      for (final a in state)
+        if (a.id != address.id) a,
+    ];
+    state = next;
+    await _storage.writeAddresses(next);
+  }
+
+  /// Removes the address with [id].
+  Future<void> remove(String id) async {
+    final next = [
+      for (final a in state)
+        if (a.id != id) a,
+    ];
+    state = next;
+    await _storage.writeAddresses(next);
+  }
+}
+
+/// Drives the checkout wizard: applies the delivery address, selects a
+/// shipping option, and advances through [CheckoutStep]s. Seeds from the
+/// active cart; surfaces loading/error via `AsyncValue`.
+class CheckoutNotifier extends AutoDisposeAsyncNotifier<CheckoutState> {
+  @override
+  Future<CheckoutState> build() async {
+    final cart = ref.read(cartProvider).valueOrNull;
+    if (cart == null || cart.isEmpty) {
+      throw const ShopifyFailure('Your cart is empty.');
+    }
+    // Prefill the last-used email so the address step isn't blank.
+    final email = ref.read(addressStorageProvider).readEmail();
+    return CheckoutState(cart: cart, email: email);
+  }
+
+  CheckoutRepository get _repo => ref.read(checkoutRepositoryProvider);
+
+  /// Attaches [email] + [address] to the cart, then advances to the shipping
+  /// or review step depending on whether Shopify returned delivery options.
+  Future<void> applyAddress({
+    required String email,
+    required MailingAddress address,
+  }) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+
+    state = const AsyncLoading<CheckoutState>().copyWithPrevious(state);
+    final result = await _repo.updateBuyerAddress(
+      current.cart.id,
+      email: email,
+      address: address,
+    );
+    state = result.fold(
+      (cart) {
+        unawaited(ref.read(addressStorageProvider).writeEmail(email));
+        return AsyncData(
+          current.copyWith(
+            cart: cart,
+            email: email,
+            selectedAddress: address,
+            step: _stepAfterAddress(cart),
+          ),
+        );
+      },
+      (failure) => AsyncError<CheckoutState>(
+        failure,
+        StackTrace.current,
+      ).copyWithPrevious(state),
+    );
+  }
+
+  /// Selects shipping option [optionHandle] for [deliveryGroupId], then moves
+  /// to the review step with the shipping-inclusive total.
+  Future<void> selectDelivery({
+    required String deliveryGroupId,
+    required String optionHandle,
+  }) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+
+    state = const AsyncLoading<CheckoutState>().copyWithPrevious(state);
+    final result = await _repo.selectDeliveryOption(
+      current.cart.id,
+      deliveryGroupId: deliveryGroupId,
+      optionHandle: optionHandle,
+    );
+    state = result.fold(
+      (cart) =>
+          AsyncData(current.copyWith(cart: cart, step: CheckoutStep.review)),
+      (failure) => AsyncError<CheckoutState>(
+        failure,
+        StackTrace.current,
+      ).copyWithPrevious(state),
+    );
+  }
+
+  /// Steps the wizard back one stage. Returns `false` when already on the
+  /// first step, so the caller can pop the route instead.
+  bool back() {
+    final current = state.valueOrNull;
+    if (current == null) return false;
+    final previous = switch (current.step) {
+      CheckoutStep.address => null,
+      CheckoutStep.delivery => CheckoutStep.address,
+      CheckoutStep.review => current.cart.hasDeliveryOptions
+          ? CheckoutStep.delivery
+          : CheckoutStep.address,
+    };
+    if (previous == null) return false;
+    state = AsyncData(current.copyWith(step: previous));
+    return true;
+  }
+
+  CheckoutStep _stepAfterAddress(Cart cart) {
+    if (!cart.hasDeliveryOptions) return CheckoutStep.review;
+    return cart.needsDeliverySelection
+        ? CheckoutStep.delivery
+        : CheckoutStep.review;
+  }
+}

@@ -182,6 +182,17 @@ class CartNotifier extends AsyncNotifier<Cart?> {
     return _mutate(() => _repo.removeLine(id, lineId));
   }
 
+  /// Discards the current cart entirely — used once checkout completes so the
+  /// finished order's cart isn't reused. Clears in-memory state and the
+  /// persisted cart ID; the next add starts a fresh cart.
+  Future<void> clearCart() async {
+    _cancelDebounces();
+    _cartId = null;
+    _serverCart = null;
+    state = const AsyncData<Cart?>(null);
+    await _storage.clearCartId();
+  }
+
   /// Runs a mutation, keeping the previous cart visible while it's in flight
   /// and storing the returned cart ID on success.
   Future<void> _mutate(Future<Result<Cart, Failure>> Function() op) async {
