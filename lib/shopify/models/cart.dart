@@ -58,7 +58,9 @@ class Cart {
               : <String, dynamic>{};
           return CartLine.fromJson(parseMap(edge, 'node', model: _model));
         },
-      ),
+        // Defensively drop any zero-quantity line (a removed / unavailable
+        // merchandise) so it never renders as a ghost ₹0 row.
+      ).where((line) => line.quantity > 0).toList(),
     );
   }
 

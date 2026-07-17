@@ -4,6 +4,7 @@ import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
 import 'package:shopify_app/shared/widgets/custom_text_box.dart';
 import 'package:shopify_app/shopify/models/cart.dart';
+import 'package:shopify_app/shopify/models/money.dart';
 
 /// Final order summary: Subtotal / Shipping / Tax / Total, an optional promo
 /// entry, and the Pay call-to-action.
@@ -56,7 +57,15 @@ class CheckoutSummary extends StatelessWidget {
               const SizedBox(height: AppSpacing.sm),
               _Row(label: 'Shipping', value: _shippingLabel()),
               const SizedBox(height: AppSpacing.sm),
-              _Row(label: 'Tax', value: cart.tax?.formatted ?? r'$0.00'),
+              _Row(
+                label: 'Tax',
+                value:
+                    cart.tax?.formatted ??
+                    Money(
+                      amount: 0,
+                      currencyCode: cart.subtotal.currencyCode,
+                    ).formatted,
+              ),
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
                 child: Divider(

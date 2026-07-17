@@ -117,7 +117,10 @@ class _TotalsCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.sm),
           const _SummaryRow(label: 'Shipping', value: 'Calculated at checkout'),
           const SizedBox(height: AppSpacing.sm),
-          _SummaryRow(label: 'Tax', value: cart.tax?.formatted ?? r'$0.00'),
+          _SummaryRow(
+            label: 'Tax',
+            value: cart.tax?.formatted ?? 'Calculated at checkout',
+          ),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
             child: Divider(color: AppColors.border, height: 1),
