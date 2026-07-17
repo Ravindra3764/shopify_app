@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shopify_app/app.dart';
 import 'package:shopify_app/config/config_repository.dart';
+import 'package:shopify_app/core/storage/address_storage.dart';
 import 'package:shopify_app/core/storage/cart_storage.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/providers/config_providers.dart';
@@ -20,6 +21,9 @@ Future<void> bootstrap() async {
       overrides: [
         appConfigProvider.overrideWithValue(config),
         cartStorageProvider.overrideWithValue(SharedPrefsCartStorage(prefs)),
+        addressStorageProvider.overrideWithValue(
+          SharedPrefsAddressStorage(prefs),
+        ),
       ],
       child: const App(),
     ),
