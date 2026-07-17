@@ -1,41 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
 import 'package:shopify_app/shared/widgets/custom_text_box.dart';
 import 'package:shopify_app/shopify/models/mailing_address.dart';
 
-/// Submission payload from [AddressForm].
-typedef AddressSubmission = ({
-  String email,
-  MailingAddress address,
-  bool saveToBook,
-});
-
-/// Validated delivery-address entry form.
+/// Validated delivery-address entry form (address fields only — buyer email is
+/// collected separately on the checkout address step).
 ///
-/// Collects buyer email + a shipping address and, on valid submit, calls
-/// [onSubmit]. When [phoneRequired] is set the phone field must be filled.
-/// When [showSaveOption] is set, a "Save this address" toggle is offered
-/// (its value flows back as the submission's `saveToBook`).
+/// On valid submit, calls [onSubmit] with the assembled [MailingAddress]. When
+/// [phoneRequired] is set the phone field must be filled. Pass [initialAddress]
+/// to edit an existing entry (its id is preserved).
 class AddressForm extends StatefulWidget {
   const AddressForm({
     required this.onSubmit,
     super.key,
-    this.initialEmail,
     this.initialAddress,
-    this.isSubmitting = false,
     this.phoneRequired = false,
-    this.showSaveOption = true,
+    this.submitLabel = 'Save address',
   });
 
-  final ValueChanged<AddressSubmission> onSubmit;
-  final String? initialEmail;
+  final ValueChanged<MailingAddress> onSubmit;
   final MailingAddress? initialAddress;
-  final bool isSubmitting;
   final bool phoneRequired;
-  final bool showSaveOption;
+  final String submitLabel;
 
   @override
   State<AddressForm> createState() => _AddressFormState();
@@ -44,7 +32,6 @@ class AddressForm extends StatefulWidget {
 class _AddressFormState extends State<AddressForm> {
   final _formKey = GlobalKey<FormState>();
 
-  late final _email = TextEditingController(text: widget.initialEmail);
   late final _firstName = TextEditingController(
     text: widget.initialAddress?.firstName,
   );
@@ -67,15 +54,12 @@ class _AddressFormState extends State<AddressForm> {
   );
   late final _phone = TextEditingController(text: widget.initialAddress?.phone);
 
-  bool _saveToBook = true;
-
   final _controllers = <TextEditingController>[];
 
   @override
   void initState() {
     super.initState();
     _controllers.addAll([
-      _email,
       _firstName,
       _lastName,
       _address1,
@@ -98,14 +82,6 @@ class _AddressFormState extends State<AddressForm> {
 
   String? _required(String? value) =>
       (value == null || value.trim().isEmpty) ? 'Required' : null;
-
-  String? _validateEmail(String? value) {
-    final v = value?.trim() ?? '';
-    if (v.isEmpty) return 'Required';
-    // Minimal shape check; Shopify does authoritative validation.
-    if (!v.contains('@') || !v.contains('.')) return 'Enter a valid email';
-    return null;
-  }
 
   String? _validateCode(String? value) {
     final v = value?.trim() ?? '';
@@ -130,11 +106,7 @@ class _AddressFormState extends State<AddressForm> {
       country: _country.text.trim().toUpperCase(),
       phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
     );
-    widget.onSubmit((
-      email: _email.text.trim(),
-      address: address,
-      saveToBook: widget.showSaveOption && _saveToBook,
-    ));
+    widget.onSubmit(address);
   }
 
   @override
@@ -144,16 +116,6 @@ class _AddressFormState extends State<AddressForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CustomTextBox(
-            label: 'Email',
-            hintText: 'you@example.com',
-            controller: _email,
-            keyboardType: TextInputType.emailAddress,
-            textInputAction: TextInputAction.next,
-            autofillHints: const [AutofillHints.email],
-            validator: _validateEmail,
-          ),
-          const SizedBox(height: AppSpacing.md),
           Row(
             children: [
               Expanded(
@@ -252,49 +214,8 @@ class _AddressFormState extends State<AddressForm> {
             autofillHints: const [AutofillHints.telephoneNumber],
             validator: widget.phoneRequired ? _required : null,
           ),
-          if (widget.showSaveOption) ...[
-            const SizedBox(height: AppSpacing.sm),
-            _SaveToggle(
-              value: _saveToBook,
-              onChanged: (v) => setState(() => _saveToBook = v),
-            ),
-          ],
           const SizedBox(height: AppSpacing.lg),
-          CustomButton.primary(
-            label: 'Continue to shipping',
-            isLoading: widget.isSubmitting,
-            onPressed: widget.isSubmitting ? null : _submit,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SaveToggle extends StatelessWidget {
-  const _SaveToggle({required this.value, required this.onChanged});
-
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    return InkWell(
-      onTap: () => onChanged(!value),
-      child: Row(
-        children: [
-          Checkbox(
-            value: value,
-            onChanged: (v) => onChanged(v ?? false),
-            activeColor: AppColors.primary,
-          ),
-          Text(
-            'Save this address for next time',
-            style: textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
+          CustomButton.primary(label: widget.submitLabel, onPressed: _submit),
         ],
       ),
     );

@@ -8,7 +8,7 @@ import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/checkout/presentation/providers/checkout_providers.dart';
 import 'package:shopify_app/features/checkout/presentation/providers/checkout_state.dart';
 import 'package:shopify_app/features/checkout/presentation/widgets/address_book_selector.dart';
-import 'package:shopify_app/features/checkout/presentation/widgets/address_form.dart';
+import 'package:shopify_app/features/checkout/presentation/widgets/address_form_sheet.dart';
 import 'package:shopify_app/features/checkout/presentation/widgets/checkout_step_header.dart';
 import 'package:shopify_app/features/checkout/presentation/widgets/checkout_summary.dart';
 import 'package:shopify_app/features/checkout/presentation/widgets/delivery_options_list.dart';
@@ -16,6 +16,7 @@ import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
+import 'package:shopify_app/shared/widgets/custom_text_box.dart';
 import 'package:shopify_app/shared/widgets/empty_state_view.dart';
 import 'package:shopify_app/shared/widgets/error_view.dart';
 import 'package:shopify_app/shared/widgets/loading_shimmer.dart';
@@ -90,7 +91,11 @@ class _CheckoutBody extends StatelessWidget {
   }
 }
 
-/// Step 1 — pick a saved address (prefill) or enter a new one.
+/// Step 1 — choose a saved delivery address or add a new one.
+///
+/// Shows the buyer email, the list of addresses, and an "Add address" button
+/// that opens the form in a sheet. When the address-book flag is off, added
+/// addresses are kept only for this session (not persisted).
 class _AddressStep extends ConsumerStatefulWidget {
   const _AddressStep({required this.state});
 
@@ -101,61 +106,147 @@ class _AddressStep extends ConsumerStatefulWidget {
 }
 
 class _AddressStepState extends ConsumerState<_AddressStep> {
-  MailingAddress? _prefill;
+  final _emailKey = GlobalKey<FormState>();
+  late final _email = TextEditingController(text: widget.state.email);
+
+  /// Session-only addresses, used when the address-book flag is off.
+  final List<MailingAddress> _session = [];
+  String? _selectedId;
 
   @override
   void initState() {
     super.initState();
-    _prefill = widget.state.selectedAddress;
+    _selectedId = widget.state.selectedAddress?.id;
   }
 
-  Future<void> _submit(AddressSubmission submission) async {
-    final flags = ref.read(featureFlagsProvider);
-    if (flags.addressBookEnabled && submission.saveToBook) {
-      await ref.read(addressBookProvider.notifier).add(submission.address);
+  @override
+  void dispose() {
+    _email.dispose();
+    super.dispose();
+  }
+
+  List<MailingAddress> _addresses(bool bookEnabled) =>
+      bookEnabled ? ref.watch(addressBookProvider) : _session;
+
+  String? _validateEmail(String? value) {
+    final v = value?.trim() ?? '';
+    if (v.isEmpty) return 'Required';
+    if (!v.contains('@') || !v.contains('.')) return 'Enter a valid email';
+    return null;
+  }
+
+  Future<void> _addAddress({
+    required bool bookEnabled,
+    required bool phoneRequired,
+  }) async {
+    final address = await showAddressFormSheet(
+      context,
+      phoneRequired: phoneRequired,
+    );
+    if (address == null) return;
+    if (bookEnabled) {
+      await ref.read(addressBookProvider.notifier).add(address);
+    } else {
+      setState(() => _session.insert(0, address));
+    }
+    setState(() => _selectedId = address.id);
+  }
+
+  void _delete({required bool bookEnabled, required String id}) {
+    if (bookEnabled) {
+      ref.read(addressBookProvider.notifier).remove(id);
+    } else {
+      setState(() => _session.removeWhere((a) => a.id == id));
+    }
+    if (_selectedId == id) setState(() => _selectedId = null);
+  }
+
+  Future<void> _continue(List<MailingAddress> addresses) async {
+    if (!(_emailKey.currentState?.validate() ?? false)) return;
+    MailingAddress? selected;
+    for (final a in addresses) {
+      if (a.id == _selectedId) {
+        selected = a;
+        break;
+      }
+    }
+    if (selected == null) {
+      showAppSnackBar(
+        context,
+        'Please select a delivery address.',
+        icon: Icons.location_on_outlined,
+      );
+      return;
     }
     await ref
         .read(checkoutProvider.notifier)
-        .applyAddress(email: submission.email, address: submission.address);
+        .applyAddress(email: _email.text.trim(), address: selected);
   }
 
   @override
   Widget build(BuildContext context) {
     final flags = ref.watch(featureFlagsProvider);
-    final addresses = ref.watch(addressBookProvider);
+    final bookEnabled = flags.addressBookEnabled;
+    final addresses = _addresses(bookEnabled);
     final isSubmitting = ref.watch(checkoutProvider).isLoading;
+    final textTheme = Theme.of(context).textTheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (flags.addressBookEnabled && addresses.isNotEmpty) ...[
+        Form(
+          key: _emailKey,
+          child: CustomTextBox(
+            label: 'Email',
+            hintText: 'you@example.com',
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            autofillHints: const [AutofillHints.email],
+            validator: _validateEmail,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Text(
+          'Delivery address',
+          style: textTheme.titleMedium?.copyWith(color: AppColors.textPrimary),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (addresses.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+            child: Text(
+              'No address yet. Add one to continue.',
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.textTertiary,
+              ),
+            ),
+          )
+        else
           AddressBookSelector(
             addresses: addresses,
-            selectedId: _prefill?.id,
-            onSelect: (a) => setState(() => _prefill = a),
-            onDelete: (id) {
-              ref.read(addressBookProvider.notifier).remove(id);
-              if (_prefill?.id == id) setState(() => _prefill = null);
-            },
+            selectedId: _selectedId,
+            onSelect: (a) => setState(() => _selectedId = a.id),
+            onDelete: (id) => _delete(bookEnabled: bookEnabled, id: id),
           ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            _prefill == null ? 'New address' : 'Edit address',
-            style: Theme.of(
-              context,
-            ).textTheme.labelLarge?.copyWith(color: AppColors.textSecondary),
+        const SizedBox(height: AppSpacing.md),
+        CustomButton.outline(
+          label: 'Add address',
+          leadingIcon: Icon(
+            Icons.add,
+            size: AppDimensions.iconSm,
+            color: AppColors.primary,
           ),
-          const SizedBox(height: AppSpacing.sm),
-        ],
-        AddressForm(
-          // Re-key so the form re-initializes when a saved address is picked.
-          key: ValueKey(_prefill?.id ?? 'new-address'),
-          initialEmail: widget.state.email,
-          initialAddress: _prefill,
-          isSubmitting: isSubmitting,
-          phoneRequired: flags.phoneRequired,
-          showSaveOption: flags.addressBookEnabled,
-          onSubmit: _submit,
+          onPressed: () => _addAddress(
+            bookEnabled: bookEnabled,
+            phoneRequired: flags.phoneRequired,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        CustomButton.primary(
+          label: 'Continue to shipping',
+          isLoading: isSubmitting,
+          onPressed: isSubmitting ? null : () => _continue(addresses),
         ),
       ],
     );
