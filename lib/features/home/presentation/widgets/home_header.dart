@@ -3,14 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart';
+import 'package:shopify_app/features/wishlist/presentation/providers/wishlist_providers.dart';
 import 'package:shopify_app/providers/config_providers.dart';
 
-/// Home top bar: menu, centered store name, cart.
+/// Home top bar: menu, centered store name, wishlist, cart.
 class HomeHeader extends ConsumerWidget {
-  const HomeHeader({super.key, this.onMenu, this.onCart});
+  const HomeHeader({super.key, this.onMenu, this.onCart, this.onWishlist});
 
   final VoidCallback? onMenu;
   final VoidCallback? onCart;
+
+  /// Opens the wishlist. `null` hides the heart — e.g. tenants with the
+  /// wishlist feature disabled.
+  final VoidCallback? onWishlist;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -33,7 +38,19 @@ class HomeHeader extends ConsumerWidget {
               ),
             ),
           ),
-          _CartButton(onTap: onCart, count: ref.watch(cartCountProvider)),
+          if (onWishlist != null) ...[
+            _BadgedIcon(
+              icon: Icons.favorite_border,
+              count: ref.watch(wishlistCountProvider),
+              onTap: onWishlist,
+            ),
+            const SizedBox(width: AppSpacing.md),
+          ],
+          _BadgedIcon(
+            icon: Icons.shopping_bag_outlined,
+            count: ref.watch(cartCountProvider),
+            onTap: onCart,
+          ),
         ],
       ),
     );
@@ -59,10 +76,11 @@ class _IconButton extends StatelessWidget {
   }
 }
 
-/// Cart icon with a count badge that appears once the cart has items.
-class _CartButton extends StatelessWidget {
-  const _CartButton({required this.count, this.onTap});
+/// An icon with a count badge that appears once [count] is positive.
+class _BadgedIcon extends StatelessWidget {
+  const _BadgedIcon({required this.icon, required this.count, this.onTap});
 
+  final IconData icon;
   final int count;
   final VoidCallback? onTap;
 
@@ -73,11 +91,7 @@ class _CartButton extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          const Icon(
-            Icons.shopping_bag_outlined,
-            size: AppDimensions.iconMd,
-            color: AppColors.textPrimary,
-          ),
+          Icon(icon, size: AppDimensions.iconMd, color: AppColors.textPrimary),
           if (count > 0)
             Positioned(
               top: -AppSpacing.sm,

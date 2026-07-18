@@ -6,11 +6,31 @@ import 'package:shopify_app/shared/widgets/price_tag.dart';
 import 'package:shopify_app/shopify/models/product.dart';
 
 class ProductCard extends StatelessWidget {
-  const ProductCard({required this.product, super.key, this.onTap, this.width});
+  const ProductCard({
+    required this.product,
+    super.key,
+    this.onTap,
+    this.onDoubleTap,
+    this.width,
+    this.isWishlisted = false,
+    this.onWishlistToggle,
+  });
 
   final Product product;
   final VoidCallback? onTap;
+
+  /// Double-tap gesture — typically wired to toggle the wishlist.
+  final VoidCallback? onDoubleTap;
+
   final double? width;
+
+  /// Whether the wishlist heart renders filled. Ignored when
+  /// [onWishlistToggle] is `null` (no heart shown).
+  final bool isWishlisted;
+
+  /// Tapped when the heart is pressed. `null` hides the heart entirely — e.g.
+  /// for tenants with the wishlist feature disabled.
+  final VoidCallback? onWishlistToggle;
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +39,7 @@ class ProductCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onDoubleTap: onDoubleTap,
       child: SizedBox(
         width: width,
         child: Column(
@@ -37,6 +58,15 @@ class ProductCard extends StatelessWidget {
                     backgroundColor: AppColors.surface,
                   ),
                   if (soldOut) const _SoldOutBadge(),
+                  if (onWishlistToggle != null)
+                    Positioned(
+                      top: AppSpacing.sm,
+                      right: AppSpacing.sm,
+                      child: _WishlistHeart(
+                        isWishlisted: isWishlisted,
+                        onTap: onWishlistToggle!,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -55,6 +85,34 @@ class ProductCard extends StatelessWidget {
               compareAtPrice: product.compareAtPrice,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Circular wishlist toggle floated over a product image.
+class _WishlistHeart extends StatelessWidget {
+  const _WishlistHeart({required this.isWishlisted, required this.onTap});
+
+  final bool isWishlisted;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.white.withValues(alpha: 0.85),
+      shape: const CircleBorder(),
+      child: InkResponse(
+        onTap: onTap,
+        radius: AppDimensions.iconMd,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xs),
+          child: Icon(
+            isWishlisted ? Icons.favorite : Icons.favorite_border,
+            size: AppDimensions.iconSm,
+            color: isWishlisted ? AppColors.error : AppColors.textPrimary,
+          ),
         ),
       ),
     );

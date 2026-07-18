@@ -26,6 +26,15 @@ class ShopifyImage {
     return image.url.isEmpty ? null : image;
   }
 
+  /// Serializes back to the Storefront `Image` shape [ShopifyImage.fromJson]
+  /// reads.
+  Map<String, dynamic> toJson() => {
+    'url': url,
+    'altText': altText,
+    'width': width,
+    'height': height,
+  };
+
   static const _model = 'ShopifyImage';
 
   final String url;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
-import 'package:shopify_app/shared/widgets/product_card.dart';
+import 'package:shopify_app/features/wishlist/presentation/widgets/wishlist_product_card.dart';
 import 'package:shopify_app/shared/widgets/section_header.dart';
 import 'package:shopify_app/shopify/models/collection.dart';
 import 'package:shopify_app/shopify/models/product.dart';
@@ -40,7 +40,7 @@ class CollectionSection extends StatelessWidget {
             separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
             itemBuilder: (_, i) {
               final product = products[i];
-              return ProductCard(
+              return WishlistProductCard(
                 product: product,
                 width: AppDimensions.productCardWidth,
                 onTap: onProductTap == null

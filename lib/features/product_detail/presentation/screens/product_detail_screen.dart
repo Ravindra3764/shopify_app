@@ -16,6 +16,7 @@ import 'package:shopify_app/features/product_detail/presentation/widgets/product
 import 'package:shopify_app/features/product_detail/presentation/widgets/product_option_selector.dart';
 import 'package:shopify_app/features/product_detail/presentation/widgets/quantity_stepper.dart';
 import 'package:shopify_app/features/product_detail/presentation/widgets/related_products_section.dart';
+import 'package:shopify_app/features/wishlist/presentation/providers/wishlist_providers.dart';
 import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
@@ -71,12 +72,24 @@ class _ProductDetailContent extends ConsumerStatefulWidget {
 }
 
 class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
-  bool _isWishlisted = false;
+  /// Product summary saved to / read from the wishlist for this detail page.
+  Product get _asProduct => Product(
+    id: widget.detail.id,
+    title: widget.detail.title,
+    handle: widget.detail.handle,
+    availableForSale: widget.detail.availableForSale,
+    price: widget.detail.price,
+    featuredImage: widget.detail.images.isEmpty
+        ? null
+        : widget.detail.images.first,
+    compareAtPrice: widget.detail.compareAtPrice,
+  );
 
   @override
   Widget build(BuildContext context) {
     final detail = widget.detail;
     final featureFlags = ref.watch(featureFlagsProvider);
+    final isWishlisted = ref.watch(isInWishlistProvider(detail.id));
     final shippingReturnCopy = ref
         .watch(shopPoliciesProvider)
         .valueOrNull
@@ -110,9 +123,11 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
                   placeholderName: detail.title,
                   selectedIndex: detail.indexOfImage(variant?.image),
                   onBack: () => context.pop(),
-                  isWishlisted: _isWishlisted,
+                  isWishlisted: isWishlisted,
                   onWishlistToggle: featureFlags.wishlistEnabled
-                      ? () => setState(() => _isWishlisted = !_isWishlisted)
+                      ? () => ref
+                            .read(wishlistProvider.notifier)
+                            .toggle(_asProduct)
                       : null,
                 ),
                 Padding(

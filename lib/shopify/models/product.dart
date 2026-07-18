@@ -44,6 +44,18 @@ class Product {
     );
   }
 
+  /// Serializes back to the Storefront `Product` shape [Product.fromJson]
+  /// reads, so a cached product (e.g. a wishlist entry) round-trips losslessly.
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'handle': handle,
+    'availableForSale': availableForSale,
+    'priceRange': {'minVariantPrice': price.toJson()},
+    'compareAtPriceRange': {'minVariantPrice': compareAtPrice?.toJson()},
+    'featuredImage': featuredImage?.toJson(),
+  };
+
   static const _model = 'Product';
 
   final String id;

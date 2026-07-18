@@ -10,6 +10,8 @@ import 'package:shopify_app/features/home/presentation/widgets/collection_sectio
 import 'package:shopify_app/features/home/presentation/widgets/home_banner_carousel.dart';
 import 'package:shopify_app/features/home/presentation/widgets/home_header.dart';
 import 'package:shopify_app/features/home/presentation/widgets/home_search_bar.dart';
+import 'package:shopify_app/features/wishlist/presentation/widgets/wishlist_hint_trigger.dart';
+import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/error_view.dart';
 import 'package:shopify_app/shared/widgets/loading_shimmer.dart';
@@ -21,6 +23,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final homeAsync = ref.watch(homeProvider);
+    final wishlistEnabled = ref.watch(featureFlagsProvider).wishlistEnabled;
     return CustomBackground(
       showAppBar: false,
       applyBottomInset: false,
@@ -29,7 +32,13 @@ class HomeScreen extends ConsumerWidget {
       child: SafeArea(
         child: Column(
           children: [
-            HomeHeader(onCart: () => context.go(AppRoutes.cart)),
+            const WishlistHintTrigger(),
+            HomeHeader(
+              onCart: () => context.go(AppRoutes.cart),
+              onWishlist: wishlistEnabled
+                  ? () => context.push(AppRoutes.wishlist)
+                  : null,
+            ),
             Expanded(
               child: homeAsync.when(
                 data: _HomeContent.new,

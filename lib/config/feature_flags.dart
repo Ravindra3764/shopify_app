@@ -10,6 +10,8 @@ class FeatureFlags {
     this.promoCodesEnabled = false,
     this.inAppWebviewCheckout = true,
     this.phoneRequired = false,
+    this.wishlistDoubleTapHintEnabled = true,
+    this.wishlistHintAlways = false,
   });
 
   /// Reads flags from `.env` string values (`"true"` / `"false"`).
@@ -36,6 +38,11 @@ class FeatureFlags {
         fallback: true,
       ),
       phoneRequired: flag('CHECKOUT_PHONE_REQUIRED', fallback: false),
+      wishlistDoubleTapHintEnabled: flag(
+        'WISHLIST_DOUBLE_TAP_HINT_ENABLED',
+        fallback: true,
+      ),
+      wishlistHintAlways: flag('WISHLIST_HINT_ALWAYS', fallback: false),
     );
   }
 
@@ -59,4 +66,12 @@ class FeatureFlags {
 
   /// Whether a phone number is required on the delivery address form.
   final bool phoneRequired;
+
+  /// Whether to show the "double-tap to wishlist" onboarding hint. Only shown
+  /// when [wishlistEnabled] is also `true`.
+  final bool wishlistDoubleTapHintEnabled;
+
+  /// When `true`, the hint shows on every app launch (useful for demos/QA);
+  /// when `false` (default), it shows once and never again.
+  final bool wishlistHintAlways;
 }
