@@ -162,6 +162,7 @@ class _PromoCodeFieldState extends State<_PromoCodeField> {
         const SizedBox(width: AppSpacing.md),
         CustomButton.outline(
           label: 'APPLY',
+          height: 34,
           width: AppDimensions.retryButtonWidth / 1.6,
           onPressed: _apply,
         ),
