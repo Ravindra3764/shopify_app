@@ -17,11 +17,20 @@ class SearchRepositoryImpl implements SearchRepository {
   static const _limit = 30;
 
   @override
-  Future<Result<List<Product>, Failure>> searchProducts(String query) async {
+  Future<Result<List<Product>, Failure>> searchProducts(
+    String query, {
+    String? sortKey,
+    bool reverse = false,
+  }) async {
     try {
       final data = await _client.query(
         kSearchProductsQuery,
-        variables: {'query': query, 'first': _limit},
+        variables: {
+          'query': query,
+          'first': _limit,
+          if (sortKey != null) 'sortKey': sortKey,
+          'reverse': reverse,
+        },
       );
       final connection = parseMap(data, 'products', model: _model);
       final products = parseList<Product>(

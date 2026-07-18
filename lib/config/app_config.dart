@@ -15,6 +15,7 @@ class AppConfig {
     this.defaultCountry = 'US',
     this.wishlistHintText =
         'Double-tap any product to save it to your wishlist.',
+    this.popularSearches = const [],
   });
 
   factory AppConfig.fromEnv(Map<String, String> env) {
@@ -44,6 +45,12 @@ class AppConfig {
         final String text when text.isNotEmpty => text,
         _ => 'Double-tap any product to save it to your wishlist.',
       },
+      // Popular search chips on the search screen; comma-separated per tenant.
+      popularSearches: (env['POPULAR_SEARCHES'] ?? '')
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList(),
     );
   }
 
@@ -68,4 +75,7 @@ class AppConfig {
   /// Copy for the one-time wishlist onboarding hint (see
   /// `FeatureFlags.wishlistDoubleTapHintEnabled`). Configurable per tenant.
   final String wishlistHintText;
+
+  /// Suggested search terms shown as chips on the search screen. Per-tenant.
+  final List<String> popularSearches;
 }

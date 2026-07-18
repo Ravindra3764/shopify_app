@@ -3,8 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shopify_app/core/error/failure.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
+import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/features/search/domain/search_filters.dart';
 import 'package:shopify_app/features/search/presentation/providers/search_providers.dart';
+import 'package:shopify_app/features/search/presentation/widgets/search_filter_sheet.dart';
+import 'package:shopify_app/features/search/presentation/widgets/search_initial_view.dart';
 import 'package:shopify_app/features/wishlist/presentation/widgets/wishlist_product_card.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/custom_text_box.dart';
@@ -13,7 +17,8 @@ import 'package:shopify_app/shared/widgets/error_view.dart';
 import 'package:shopify_app/shared/widgets/loading_shimmer.dart';
 import 'package:shopify_app/shopify/models/product.dart';
 
-/// Full-text product search: a debounced field over a results grid.
+/// Full-text product search: a debounced field with recent/popular suggestions,
+/// a filter sheet, and a results grid.
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
@@ -30,12 +35,49 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     super.dispose();
   }
 
+  /// Runs a committed search (submit or a chip tap): syncs the field, sets the
+  /// term immediately, and records it in history.
+  void _runSearch(String term) {
+    final trimmed = term.trim();
+    if (trimmed.length < kMinSearchLength) return;
+    _controller.value = TextEditingValue(
+      text: trimmed,
+      selection: TextSelection.collapsed(offset: trimmed.length),
+    );
+    ref.read(searchQueryProvider.notifier).setTerm(trimmed);
+    ref.read(searchHistoryProvider.notifier).record(trimmed);
+    FocusScope.of(context).unfocus();
+  }
+
+  Future<void> _openFilters() async {
+    final next = await showModalBottomSheet<SearchFilters>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) =>
+          SearchFilterSheet(initial: ref.read(searchFiltersProvider)),
+    );
+    if (next != null) {
+      ref.read(searchFiltersProvider.notifier).apply(next);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final filtersActive = ref.watch(searchFiltersProvider).isActive;
     return CustomBackground(
       title: 'Search',
       horizontalPadding: 0,
       contentTopPadding: 0,
+      actions: [
+        IconButton(
+          onPressed: _openFilters,
+          icon: Icon(
+            filtersActive ? Icons.filter_alt : Icons.filter_alt_outlined,
+            color: filtersActive ? AppColors.primary : AppColors.textPrimary,
+          ),
+        ),
+      ],
       child: Column(
         children: [
           Padding(
@@ -44,9 +86,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               controller: _controller,
               hintText: 'Search our collection',
               onChanged: ref.read(searchQueryProvider.notifier).update,
+              onSubmitted: _runSearch,
             ),
           ),
-          const Expanded(child: _SearchBody()),
+          Expanded(child: _SearchBody(onTermSelected: _runSearch)),
         ],
       ),
     );
@@ -54,16 +97,15 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 }
 
 class _SearchBody extends ConsumerWidget {
-  const _SearchBody();
+  const _SearchBody({required this.onTermSelected});
+
+  final void Function(String term) onTermSelected;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final query = ref.watch(searchQueryProvider);
     if (query.length < kMinSearchLength) {
-      return const EmptyStateView(
-        icon: Icons.search,
-        message: 'Search for products by name, brand, or type.',
-      );
+      return SearchInitialView(onTermSelected: onTermSelected);
     }
 
     return ref
