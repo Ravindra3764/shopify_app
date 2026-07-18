@@ -10,6 +10,7 @@ class ProductCard extends StatelessWidget {
     required this.product,
     super.key,
     this.onTap,
+    this.onDoubleTap,
     this.width,
     this.isWishlisted = false,
     this.onWishlistToggle,
@@ -17,6 +18,10 @@ class ProductCard extends StatelessWidget {
 
   final Product product;
   final VoidCallback? onTap;
+
+  /// Double-tap gesture — typically wired to toggle the wishlist.
+  final VoidCallback? onDoubleTap;
+
   final double? width;
 
   /// Whether the wishlist heart renders filled. Ignored when
@@ -34,6 +39,7 @@ class ProductCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+      onDoubleTap: onDoubleTap,
       child: SizedBox(
         width: width,
         child: Column(
