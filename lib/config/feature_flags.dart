@@ -15,10 +15,14 @@ class FeatureFlags {
   /// Reads flags from `.env` string values (`"true"` / `"false"`).
   factory FeatureFlags.fromEnv(Map<String, String> env) {
     bool flag(String key, {required bool fallback}) =>
-        switch (env[key]?.toLowerCase()) {
+        switch (env[key]?.trim().toLowerCase()) {
           'true' => true,
           'false' => false,
-          _ => fallback,
+          null || '' => fallback,
+          final invalid => throw StateError(
+            'Invalid boolean for "$key" in .env: "$invalid" '
+            '(expected "true" or "false").',
+          ),
         };
     return FeatureFlags(
       wishlistEnabled: flag('WISHLIST_ENABLED', fallback: true),
