@@ -112,32 +112,92 @@ final searchHistoryProvider =
       SearchHistoryNotifier.new,
     );
 
-/// Product results for the current term + filters. Returns an empty list until
-/// the term reaches [kMinSearchLength]; rethrows `Failure` for
-/// `AsyncValue.error`. Auto-disposes when the search screen closes.
-class SearchResultsNotifier extends AutoDisposeAsyncNotifier<List<Product>> {
+/// Accumulated, paginated search results.
+class SearchResults {
+  const SearchResults({
+    this.items = const [],
+    this.hasMore = false,
+    this.loadingMore = false,
+  });
+
+  final List<Product> items;
+  final bool hasMore;
+  final bool loadingMore;
+
+  SearchResults copyWith({
+    List<Product>? items,
+    bool? hasMore,
+    bool? loadingMore,
+  }) {
+    return SearchResults(
+      items: items ?? this.items,
+      hasMore: hasMore ?? this.hasMore,
+      loadingMore: loadingMore ?? this.loadingMore,
+    );
+  }
+}
+
+/// Paginated product results for the current term + filters. Empty until the
+/// term reaches [kMinSearchLength]; rethrows `Failure` for `AsyncValue.error`.
+/// Call [loadMore] to append the next page. Auto-disposes with the screen.
+class SearchResultsNotifier extends AutoDisposeAsyncNotifier<SearchResults> {
+  String? _cursor;
+
+  String _queryFor(String term, SearchFilters filters) =>
+      [term, filters.queryTokens].where((s) => s.isNotEmpty).join(' ');
+
   @override
-  Future<List<Product>> build() async {
+  Future<SearchResults> build() async {
     final term = ref.watch(searchQueryProvider);
-    if (term.length < kMinSearchLength) return const [];
-
+    if (term.length < kMinSearchLength) {
+      _cursor = null;
+      return const SearchResults();
+    }
     final filters = ref.watch(searchFiltersProvider);
-    final query = [
-      term,
-      filters.queryTokens,
-    ].where((s) => s.isNotEmpty).join(' ');
-
     final repo = ref.watch(searchRepositoryProvider);
     final result = await repo.searchProducts(
-      query,
+      _queryFor(term, filters),
       sortKey: filters.sort.sortKey,
       reverse: filters.sort.reverse,
     );
-    return result.fold((products) => products, (failure) => throw failure);
+    final page = result.fold((p) => p, (failure) => throw failure);
+    _cursor = page.endCursor;
+    return SearchResults(items: page.products, hasMore: page.hasNextPage);
+  }
+
+  /// Fetches and appends the next page. No-op while loading, at the end, or
+  /// before the first page has loaded.
+  Future<void> loadMore() async {
+    final current = state.valueOrNull;
+    if (current == null || !current.hasMore || current.loadingMore) return;
+
+    state = AsyncData(current.copyWith(loadingMore: true));
+    final filters = ref.read(searchFiltersProvider);
+    final result = await ref
+        .read(searchRepositoryProvider)
+        .searchProducts(
+          _queryFor(ref.read(searchQueryProvider), filters),
+          sortKey: filters.sort.sortKey,
+          reverse: filters.sort.reverse,
+          after: _cursor,
+        );
+    state = AsyncData(
+      result.fold(
+        (page) {
+          _cursor = page.endCursor;
+          return SearchResults(
+            items: [...current.items, ...page.products],
+            hasMore: page.hasNextPage,
+          );
+        },
+        // Keep the current page on error; scrolling again retries.
+        (_) => current.copyWith(loadingMore: false),
+      ),
+    );
   }
 }
 
 final searchResultsProvider =
-    AsyncNotifierProvider.autoDispose<SearchResultsNotifier, List<Product>>(
+    AsyncNotifierProvider.autoDispose<SearchResultsNotifier, SearchResults>(
       SearchResultsNotifier.new,
     );

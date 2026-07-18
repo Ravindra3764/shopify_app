@@ -30,12 +30,13 @@ void main() {
   });
 
   group('searchProducts', () {
-    test('maps a products connection to a list of Product', () async {
+    test('maps a products connection to a page of Product', () async {
       when(
         () => client.query(any(), variables: any(named: 'variables')),
       ).thenAnswer(
         (_) async => {
           'products': {
+            'pageInfo': {'hasNextPage': true, 'endCursor': 'cursor-2'},
             'edges': [
               {'node': _productNode('1')},
               {'node': _productNode('2')},
@@ -45,27 +46,33 @@ void main() {
       );
 
       final result = await repo.searchProducts('aviator');
-      final products = result.fold((p) => p, (_) => null);
+      final page = result.fold((p) => p, (_) => null);
 
       expect(result.isSuccess, isTrue);
-      expect(products, hasLength(2));
-      expect(products!.first.title, 'Aviator 1');
-      expect(products.first.handle, 'aviator-1');
+      expect(page!.products, hasLength(2));
+      expect(page.products.first.title, 'Aviator 1');
+      expect(page.hasNextPage, isTrue);
+      expect(page.endCursor, 'cursor-2');
     });
 
-    test('returns an empty list when there are no matches', () async {
+    test('returns an empty page when there are no matches', () async {
       when(
         () => client.query(any(), variables: any(named: 'variables')),
       ).thenAnswer(
         (_) async => {
-          'products': {'edges': <dynamic>[]},
+          'products': {
+            'pageInfo': {'hasNextPage': false, 'endCursor': null},
+            'edges': <dynamic>[],
+          },
         },
       );
 
       final result = await repo.searchProducts('zzzzz');
+      final page = result.fold((p) => p, (_) => null);
 
       expect(result.isSuccess, isTrue);
-      expect(result.fold((p) => p, (_) => null), isEmpty);
+      expect(page!.products, isEmpty);
+      expect(page.hasNextPage, isFalse);
     });
 
     test('maps a ShopifyException to a Failure', () async {
