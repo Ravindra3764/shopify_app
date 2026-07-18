@@ -13,6 +13,8 @@ class AppConfig {
     required this.logoAsset,
     required this.features,
     this.defaultCountry = 'US',
+    this.wishlistHintText =
+        'Double-tap any product to save it to your wishlist.',
   });
 
   factory AppConfig.fromEnv(Map<String, String> env) {
@@ -37,6 +39,11 @@ class AppConfig {
       features: FeatureFlags.fromEnv(env),
       // Home country (ISO code) prefilled on the checkout address form.
       defaultCountry: (env['DEFAULT_COUNTRY'] ?? 'US').trim().toUpperCase(),
+      // Onboarding hint copy; falls back to the default when unset/blank.
+      wishlistHintText: switch (env['WISHLIST_HINT_TEXT']?.trim()) {
+        final String text when text.isNotEmpty => text,
+        _ => 'Double-tap any product to save it to your wishlist.',
+      },
     );
   }
 
@@ -57,4 +64,8 @@ class AppConfig {
   /// Tenant home country as an ISO 3166-1 alpha-2 code (e.g. `US`, `IN`).
   /// Prefilled as the country on the checkout address form.
   final String defaultCountry;
+
+  /// Copy for the one-time wishlist onboarding hint (see
+  /// `FeatureFlags.wishlistDoubleTapHintEnabled`). Configurable per tenant.
+  final String wishlistHintText;
 }
