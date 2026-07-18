@@ -1,22 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/features/product_detail/presentation/product_navigation.dart';
 import 'package:shopify_app/features/wishlist/presentation/widgets/wishlist_product_card.dart';
 import 'package:shopify_app/shared/widgets/section_header.dart';
 import 'package:shopify_app/shopify/models/collection.dart';
-import 'package:shopify_app/shopify/models/product.dart';
 
 /// A collection rendered as a titled header plus a horizontal product row.
 class CollectionSection extends StatelessWidget {
-  const CollectionSection({
-    required this.collection,
-    super.key,
-    this.onSeeAll,
-    this.onProductTap,
-  });
+  const CollectionSection({required this.collection, super.key, this.onSeeAll});
 
   final Collection collection;
   final VoidCallback? onSeeAll;
-  final void Function(Product product)? onProductTap;
 
   @override
   Widget build(BuildContext context) {
@@ -38,14 +32,11 @@ class CollectionSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             itemCount: products.length,
             separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
-            itemBuilder: (_, i) {
-              final product = products[i];
+            itemBuilder: (context, i) {
               return WishlistProductCard(
-                product: product,
+                product: products[i],
                 width: AppDimensions.productCardWidth,
-                onTap: onProductTap == null
-                    ? null
-                    : () => onProductTap!(product),
+                onTap: () => openProductFromList(context, products, i),
               );
             },
           ),

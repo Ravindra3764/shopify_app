@@ -1,13 +1,17 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/routing/app_shell.dart';
+import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/features/cart/presentation/screens/cart_screen.dart';
 import 'package:shopify_app/features/checkout/domain/order_confirmation.dart';
 import 'package:shopify_app/features/checkout/presentation/screens/checkout_payment_screen.dart';
 import 'package:shopify_app/features/checkout/presentation/screens/checkout_screen.dart';
 import 'package:shopify_app/features/checkout/presentation/screens/order_confirmed_screen.dart';
 import 'package:shopify_app/features/home/presentation/screens/home_screen.dart';
+import 'package:shopify_app/features/product_detail/domain/product_peek_args.dart';
 import 'package:shopify_app/features/product_detail/presentation/screens/product_detail_screen.dart';
+import 'package:shopify_app/features/product_detail/presentation/screens/product_sheet_screen.dart';
 import 'package:shopify_app/features/product_listing/presentation/screens/collection_screen.dart';
 import 'package:shopify_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:shopify_app/features/search/presentation/screens/search_screen.dart';
@@ -21,7 +25,7 @@ import 'package:shopify_app/features/wishlist/presentation/screens/wishlist_scre
 /// Home/Cart/Profile live under a [StatefulShellRoute] so [AppShell]'s
 /// floating bottom nav persists across them, each keeping its own stack;
 /// collection/product-detail push full-screen on top, hiding the nav.
-GoRouter createRouter() {
+GoRouter createRouter({bool sheetProductDetail = false}) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
     routes: [
@@ -73,9 +77,37 @@ GoRouter createRouter() {
       GoRoute(
         path: AppRoutes.productDetail,
         name: AppRoutes.productDetailName,
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final handle = state.pathParameters['handle'] ?? '';
-          return ProductDetailScreen(handle: handle);
+          final peek = state.extra is ProductPeekArgs
+              ? state.extra! as ProductPeekArgs
+              : null;
+          // Blinkit-style sheet only when enabled AND opened from a list
+          // (siblings to swipe through); deep links fall back to classic.
+          if (sheetProductDetail && peek != null && peek.handles.isNotEmpty) {
+            return CustomTransitionPage<void>(
+              key: state.pageKey,
+              opaque: false,
+              barrierDismissible: true,
+              barrierColor: AppColors.scrim,
+              transitionsBuilder: (context, animation, _, child) =>
+                  SlideTransition(
+                    position: Tween(begin: const Offset(0, 1), end: Offset.zero)
+                        .animate(
+                          CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutCubic,
+                          ),
+                        ),
+                    child: child,
+                  ),
+              child: ProductSheetScreen(peek: peek),
+            );
+          }
+          return MaterialPage<void>(
+            key: state.pageKey,
+            child: ProductDetailScreen(handle: handle),
+          );
         },
       ),
       GoRoute(

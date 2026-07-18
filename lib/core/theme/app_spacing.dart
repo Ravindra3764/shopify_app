@@ -24,6 +24,10 @@ abstract final class AppDimensions {
 
   static const double retryButtonWidth = 160;
 
+  /// Grab-handle for the Blinkit-style product sheet.
+  static const double sheetHandleWidth = 40;
+  static const double sheetHandleHeight = 4;
+
   /// Sizes for the animated double-tap wishlist onboarding hint.
   static const double hintMaxWidth = 360;
   static const double hintStageSize = 140;
