@@ -18,6 +18,9 @@ abstract final class AppRoutes {
   /// Wishlist route (pushed full-screen; gated by the wishlist feature flag).
   static const String wishlist = '/wishlist';
 
+  /// Search route (pushed full-screen; gated by the search feature flag).
+  static const String search = '/search';
+
   /// Checkout wizard (address → shipping → review).
   static const String checkout = '/checkout';
 
