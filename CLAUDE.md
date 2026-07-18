@@ -264,6 +264,8 @@ Required components (non-exhaustive):
 | `CustomTextBox` | `default`, `search`, `password` (obscure toggle), error text, prefix/suffix |
 | `CustomButton` | `primary`, `secondary`, `outline`; `isLoading`, `disabled` |
 | `ProductCard` | `grid`, `list` variants |
+
+> **Square product cards — always use `WishlistProductCard`.** Whenever you render a square/grid product card anywhere in the app (home rows, collection grid, wishlist, search results, related products…), use `features/wishlist/presentation/widgets/wishlist_product_card.dart`, **not** the bare `ProductCard`. It wraps `ProductCard` with the wishlist heart + double-tap-to-save behavior wired to providers, and falls back to a plain card when the tenant has wishlist disabled — so every card in the app has identical, consistent gesture/heart behavior for free. Do not re-wire `isWishlisted`/`onWishlistToggle`/`onDoubleTap` by hand at call sites.
 | `CartItemTile` | qty stepper, remove action |
 | `PriceTag` | compare-at strikethrough, currency from Shopify money |
 | `RatingStars` | read-only + interactive |

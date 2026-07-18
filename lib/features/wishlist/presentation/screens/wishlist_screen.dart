@@ -4,9 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/wishlist/presentation/providers/wishlist_providers.dart';
+import 'package:shopify_app/features/wishlist/presentation/widgets/wishlist_product_card.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/empty_state_view.dart';
-import 'package:shopify_app/shared/widgets/product_card.dart';
 
 /// The shopper's saved products. Local-only for now; hearts toggle from here,
 /// the home header, cards, and the product-detail gallery all stay in sync via
@@ -42,11 +42,8 @@ class WishlistScreen extends ConsumerWidget {
               ),
               itemBuilder: (context, i) {
                 final product = products[i];
-                return ProductCard(
+                return WishlistProductCard(
                   product: product,
-                  isWishlisted: true,
-                  onWishlistToggle: () =>
-                      ref.read(wishlistProvider.notifier).remove(product.id),
                   onTap: () =>
                       context.push(AppRoutes.productDetailPath(product.handle)),
                 );
