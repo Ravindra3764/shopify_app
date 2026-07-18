@@ -21,7 +21,7 @@ const _debounce = Duration(milliseconds: 350);
 
 /// The debounced, trimmed search term. The text field pushes raw input through
 /// [update]; the term only changes after the shopper stops typing.
-class SearchQueryNotifier extends Notifier<String> {
+class SearchQueryNotifier extends AutoDisposeNotifier<String> {
   Timer? _timer;
 
   @override
@@ -49,12 +49,14 @@ class SearchQueryNotifier extends Notifier<String> {
   }
 }
 
-final searchQueryProvider = NotifierProvider<SearchQueryNotifier, String>(
-  SearchQueryNotifier.new,
-);
+final searchQueryProvider =
+    NotifierProvider.autoDispose<SearchQueryNotifier, String>(
+      SearchQueryNotifier.new,
+    );
 
 /// Active result refinements (sort + filters). Applied from the filter sheet.
-class SearchFiltersNotifier extends Notifier<SearchFilters> {
+/// Auto-disposes with the search screen so filters reset on reopen.
+class SearchFiltersNotifier extends AutoDisposeNotifier<SearchFilters> {
   @override
   SearchFilters build() => const SearchFilters();
 
@@ -65,7 +67,7 @@ class SearchFiltersNotifier extends Notifier<SearchFilters> {
 }
 
 final searchFiltersProvider =
-    NotifierProvider<SearchFiltersNotifier, SearchFilters>(
+    NotifierProvider.autoDispose<SearchFiltersNotifier, SearchFilters>(
       SearchFiltersNotifier.new,
     );
 
