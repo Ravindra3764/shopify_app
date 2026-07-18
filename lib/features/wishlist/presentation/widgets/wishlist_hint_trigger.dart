@@ -31,10 +31,14 @@ class _WishlistHintTriggerState extends ConsumerState<WishlistHintTrigger> {
     final flags = ref.read(featureFlagsProvider);
     if (!flags.wishlistEnabled || !flags.wishlistDoubleTapHintEnabled) return;
 
-    final storage = ref.read(onboardingStorageProvider);
-    if (storage.wishlistHintSeen()) return;
+    // In "always" mode the hint replays every launch; otherwise it shows once
+    // and is remembered as seen.
+    if (!flags.wishlistHintAlways) {
+      final storage = ref.read(onboardingStorageProvider);
+      if (storage.wishlistHintSeen()) return;
+      unawaited(storage.markWishlistHintSeen());
+    }
 
-    unawaited(storage.markWishlistHintSeen());
     unawaited(
       WishlistDoubleTapHint.show(
         context,
