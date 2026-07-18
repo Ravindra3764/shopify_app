@@ -1,0 +1,60 @@
+{
+  "id": "gid://shopify/Cart/abc123",
+  "checkoutUrl": "https://acme.myshopify.com/cart/c/abc123",
+  "totalQuantity": 2,
+  "buyerIdentity": { "email": "shopper@example.com" },
+  "cost": {
+    "subtotalAmount": { "amount": "80.00", "currencyCode": "USD" },
+    "totalAmount": { "amount": "90.40", "currencyCode": "USD" },
+    "totalTaxAmount": { "amount": "5.40", "currencyCode": "USD" }
+  },
+  "deliveryGroups": {
+    "edges": [
+      {
+        "node": {
+          "id": "gid://shopify/CartDeliveryGroup/g1",
+          "selectedDeliveryOption": { "handle": "standard" },
+          "deliveryOptions": [
+            {
+              "handle": "standard",
+              "title": "Standard",
+              "code": "STANDARD",
+              "description": "3-5 business days",
+              "estimatedCost": { "amount": "5.00", "currencyCode": "USD" }
+            },
+            {
+              "handle": "express",
+              "title": "Express",
+              "code": "EXPRESS",
+              "description": "1-2 business days",
+              "estimatedCost": { "amount": "15.00", "currencyCode": "USD" }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "lines": {
+    "edges": [
+      {
+        "node": {
+          "id": "gid://shopify/CartLine/l1",
+          "quantity": 2,
+          "cost": { "totalAmount": { "amount": "80.00", "currencyCode": "USD" } },
+          "merchandise": {
+            "id": "gid://shopify/ProductVariant/v1",
+            "title": "M / Charcoal",
+            "quantityAvailable": 10,
+            "image": { "url": "https://cdn.example.com/a.jpg", "altText": "Tee", "width": 800, "height": 800 },
+            "price": { "amount": "40.00", "currencyCode": "USD" },
+            "selectedOptions": [
+              { "name": "Size", "value": "M" },
+              { "name": "Color", "value": "Charcoal" }
+            ],
+            "product": { "title": "Cotton Tee" }
+          }
+        }
+      }
+    ]
+  }
+}

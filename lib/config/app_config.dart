@@ -12,6 +12,7 @@ class AppConfig {
     required this.accentColorHex,
     required this.logoAsset,
     required this.features,
+    this.defaultCountry = 'US',
   });
 
   factory AppConfig.fromEnv(Map<String, String> env) {
@@ -34,6 +35,8 @@ class AppConfig {
       accentColorHex: required('ACCENT_COLOR'),
       logoAsset: required('LOGO_ASSET'),
       features: FeatureFlags.fromEnv(env),
+      // Home country (ISO code) prefilled on the checkout address form.
+      defaultCountry: (env['DEFAULT_COUNTRY'] ?? 'US').trim().toUpperCase(),
     );
   }
 
@@ -50,4 +53,8 @@ class AppConfig {
 
   final String logoAsset;
   final FeatureFlags features;
+
+  /// Tenant home country as an ISO 3166-1 alpha-2 code (e.g. `US`, `IN`).
+  /// Prefilled as the country on the checkout address form.
+  final String defaultCountry;
 }

@@ -6,14 +6,33 @@ import 'package:shopify_app/core/result/result.dart';
 import 'package:shopify_app/core/storage/cart_storage.dart';
 import 'package:shopify_app/features/cart/data/cart_repository_impl.dart';
 import 'package:shopify_app/features/cart/domain/cart_repository.dart';
+import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/providers/shopify_providers.dart';
 import 'package:shopify_app/providers/storage_providers.dart';
 import 'package:shopify_app/shopify/models/cart.dart';
+import 'package:shopify_app/shopify/models/cart_discount_code.dart';
 import 'package:shopify_app/shopify/models/money.dart';
 
-/// Cart repository, wired to the Storefront `ApiClient`.
+/// Result of trying to apply a promo code to the cart.
+enum PromoOutcome {
+  /// Code accepted and reducing the total.
+  applied,
+
+  /// Code recognised but not usable on this cart (unmet minimum, wrong
+  /// products, expired, or not a code Shopify knows).
+  notApplicable,
+
+  /// The cart mutation failed (network/Shopify transport error).
+  error,
+}
+
+/// Cart repository, wired to the Storefront `ApiClient` and the tenant's
+/// market country (so cart pricing/availability resolve in the right market).
 final cartRepositoryProvider = Provider<CartRepository>(
-  (ref) => CartRepositoryImpl(ref.watch(apiClientProvider)),
+  (ref) => CartRepositoryImpl(
+    ref.watch(apiClientProvider),
+    countryCode: ref.watch(appConfigProvider).defaultCountry,
+  ),
 );
 
 /// The active guest cart, or `null` when nothing has been added yet.
@@ -71,6 +90,12 @@ class CartNotifier extends AsyncNotifier<Cart?> {
     final result = await _repo.getCart(savedId);
     return result.fold(
       (cart) {
+        // A checked-out (spent) cart still resolves but comes back empty —
+        // its lines clamp to quantity 0. Discard it so a fresh cart starts.
+        if (cart.isEmpty) {
+          unawaited(_storage.clearCartId());
+          return null;
+        }
         _cartId = cart.id;
         _serverCart = cart;
         return cart;
@@ -83,12 +108,25 @@ class CartNotifier extends AsyncNotifier<Cart?> {
   }
 
   /// Adds [quantity] of [variantId], creating the cart on first use.
+  ///
+  /// Recovers from a spent cart: once a cart has been checked out, Shopify
+  /// still accepts `cartLinesAdd` but the line won't stick (it returns at
+  /// quantity 0). When that happens we abandon the dead cart and create a
+  /// fresh one so the item actually lands.
   Future<void> addVariant(String variantId, {int quantity = 1}) {
-    return _mutate(() {
+    return _mutate(() async {
       final id = _cartId;
-      return id == null
-          ? _repo.createCart(variantId, quantity)
-          : _repo.addLine(id, variantId, quantity);
+      if (id == null) return _repo.createCart(variantId, quantity);
+
+      final result = await _repo.addLine(id, variantId, quantity);
+      if (result case Success(
+        :final value,
+      ) when !value.lines.any((line) => line.variantId == variantId)) {
+        unawaited(_storage.clearCartId());
+        _cartId = null;
+        return _repo.createCart(variantId, quantity);
+      }
+      return result;
     });
   }
 
@@ -180,6 +218,89 @@ class CartNotifier extends AsyncNotifier<Cart?> {
     final id = _cartId;
     if (id == null) return Future<void>.value();
     return _mutate(() => _repo.removeLine(id, lineId));
+  }
+
+  /// Applies promo [code] to the cart, merging it with any already-applicable
+  /// codes. Returns the [PromoOutcome] so the UI can message the shopper.
+  ///
+  /// Shopify accepts unknown/unusable codes at the transport level and just
+  /// flags them non-applicable, so a bad code isn't an error — we detect it
+  /// from the returned cart and strip it back out to keep the cart clean.
+  Future<PromoOutcome> applyPromoCode(String code) async {
+    final id = _cartId;
+    final normalized = code.trim();
+    if (id == null || normalized.isEmpty) return PromoOutcome.error;
+
+    final codes = <String>[
+      for (final c
+          in state.valueOrNull?.discountCodes ?? const <CartDiscountCode>[])
+        if (c.applicable) c.code,
+    ];
+    if (!codes.any((c) => c.toLowerCase() == normalized.toLowerCase())) {
+      codes.add(normalized);
+    }
+
+    final result = await _applyDiscountCodes(id, codes);
+    if (result == null) return PromoOutcome.error;
+
+    final applicable = result.discountCodes.any(
+      (c) => c.code.toLowerCase() == normalized.toLowerCase() && c.applicable,
+    );
+    if (applicable) return PromoOutcome.applied;
+
+    // Code came back non-applicable — drop it so it doesn't linger on the cart.
+    final valid = [
+      for (final c in result.discountCodes)
+        if (c.applicable) c.code,
+    ];
+    await _applyDiscountCodes(id, valid);
+    return PromoOutcome.notApplicable;
+  }
+
+  /// Removes promo [code] from the cart, re-sending the remaining codes.
+  Future<void> removePromoCode(String code) async {
+    final id = _cartId;
+    if (id == null) return;
+    final remaining = <String>[
+      for (final c
+          in state.valueOrNull?.discountCodes ?? const <CartDiscountCode>[])
+        if (c.code.toLowerCase() != code.toLowerCase()) c.code,
+    ];
+    await _applyDiscountCodes(id, remaining);
+  }
+
+  /// Sends [codes] to Shopify and publishes the returned cart. Returns the new
+  /// cart on success, or `null` when the mutation failed (state set to error).
+  Future<Cart?> _applyDiscountCodes(String id, List<String> codes) async {
+    state = const AsyncValue<Cart?>.loading().copyWithPrevious(state);
+    final result = await _repo.updateDiscountCodes(id, codes);
+    return result.fold(
+      (cart) {
+        _cartId = cart.id;
+        _serverCart = cart;
+        unawaited(_storage.writeCartId(cart.id));
+        state = AsyncData<Cart?>(cart);
+        return cart;
+      },
+      (failure) {
+        state = AsyncError<Cart?>(
+          failure,
+          StackTrace.current,
+        ).copyWithPrevious(state);
+        return null;
+      },
+    );
+  }
+
+  /// Discards the current cart entirely — used once checkout completes so the
+  /// finished order's cart isn't reused. Clears in-memory state and the
+  /// persisted cart ID; the next add starts a fresh cart.
+  Future<void> clearCart() async {
+    _cancelDebounces();
+    _cartId = null;
+    _serverCart = null;
+    state = const AsyncData<Cart?>(null);
+    await _storage.clearCartId();
   }
 
   /// Runs a mutation, keeping the previous cart visible while it's in flight

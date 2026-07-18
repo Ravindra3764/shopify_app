@@ -6,11 +6,15 @@
 
 import 'package:shopify_app/shopify/queries/cart_queries.dart';
 
-/// Creates a new guest cart, optionally seeded with lines. No buyer identity
-/// is sent — the cart is anonymous until checkout.
+/// Creates a new guest cart seeded with lines, in the tenant's [\$countryCode]
+/// market context. The country pins pricing/availability to the store's market
+/// (Shopify Markets) so products resolve correctly; without it the cart falls
+/// back to the store's default market, where the catalog may be unavailable.
 const String kCartCreateMutation = '''
-mutation CartCreate(\$lines: [CartLineInput!]) {
-  cartCreate(input: { lines: \$lines }) {
+mutation CartCreate(\$lines: [CartLineInput!], \$countryCode: CountryCode) {
+  cartCreate(
+    input: { lines: \$lines, buyerIdentity: { countryCode: \$countryCode } }
+  ) {
     cart { ...CartFields }
     userErrors { field message }
   }
@@ -31,6 +35,19 @@ $kCartFragment''';
 const String kCartLinesUpdateMutation = '''
 mutation CartLinesUpdate(\$cartId: ID!, \$lines: [CartLineUpdateInput!]!) {
   cartLinesUpdate(cartId: \$cartId, lines: \$lines) {
+    cart { ...CartFields }
+    userErrors { field message }
+  }
+}
+$kCartFragment''';
+
+/// Replaces the cart's discount codes with [\$discountCodes] (send the full set
+/// each time — it's a replace, not a merge). Shopify echoes each code back with
+/// `applicable`: `false` means invalid or not usable on this cart (unmet
+/// minimum, wrong products, expired). An empty/absent list clears all codes.
+const String kCartDiscountCodesUpdateMutation = '''
+mutation CartDiscountCodesUpdate(\$cartId: ID!, \$discountCodes: [String!]) {
+  cartDiscountCodesUpdate(cartId: \$cartId, discountCodes: \$discountCodes) {
     cart { ...CartFields }
     userErrors { field message }
   }
