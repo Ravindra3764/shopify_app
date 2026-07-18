@@ -6,6 +6,7 @@ import 'package:shopify_app/config/config_repository.dart';
 import 'package:shopify_app/core/storage/address_storage.dart';
 import 'package:shopify_app/core/storage/cart_storage.dart';
 import 'package:shopify_app/core/storage/onboarding_storage.dart';
+import 'package:shopify_app/core/storage/search_history_storage.dart';
 import 'package:shopify_app/core/storage/wishlist_storage.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/providers/config_providers.dart';
@@ -31,6 +32,9 @@ Future<void> bootstrap() async {
         ),
         onboardingStorageProvider.overrideWithValue(
           SharedPrefsOnboardingStorage(prefs),
+        ),
+        searchHistoryStorageProvider.overrideWithValue(
+          SharedPrefsSearchHistoryStorage(prefs),
         ),
       ],
       child: const App(),

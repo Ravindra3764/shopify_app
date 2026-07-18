@@ -10,6 +10,7 @@ import 'package:shopify_app/features/home/presentation/screens/home_screen.dart'
 import 'package:shopify_app/features/product_detail/presentation/screens/product_detail_screen.dart';
 import 'package:shopify_app/features/product_listing/presentation/screens/collection_screen.dart';
 import 'package:shopify_app/features/profile/presentation/screens/profile_screen.dart';
+import 'package:shopify_app/features/search/presentation/screens/search_screen.dart';
 import 'package:shopify_app/features/splash/presentation/screens/splash_screen.dart';
 import 'package:shopify_app/features/wishlist/presentation/screens/wishlist_screen.dart';
 
@@ -80,6 +81,10 @@ GoRouter createRouter() {
       GoRoute(
         path: AppRoutes.wishlist,
         builder: (context, state) => const WishlistScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.search,
+        builder: (context, state) => const SearchScreen(),
       ),
       GoRoute(
         path: AppRoutes.checkout,

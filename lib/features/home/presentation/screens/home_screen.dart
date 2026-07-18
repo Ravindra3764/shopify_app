@@ -70,15 +70,19 @@ class _HomeContent extends ConsumerWidget {
           bottom: AppDimensions.floatingNavClearance,
         ),
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(
-              AppSpacing.md,
-              AppSpacing.sm,
-              AppSpacing.md,
-              AppSpacing.lg,
+          if (ref.watch(featureFlagsProvider).searchEnabled)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
+                AppSpacing.lg,
+              ),
+              child: HomeSearchBar(
+                hintText: 'Search our collection',
+                onTap: () => context.push(AppRoutes.search),
+              ),
             ),
-            child: HomeSearchBar(hintText: 'Search our collection'),
-          ),
           if (home.banners.isNotEmpty)
             HomeBannerCarousel(
               banners: home.banners,

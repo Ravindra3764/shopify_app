@@ -25,31 +25,44 @@ class HomeHeader extends ConsumerWidget {
         horizontal: AppSpacing.md,
         vertical: AppSpacing.sm,
       ),
-      child: Row(
+      // Title is centered against the full width via a Stack so it stays put
+      // regardless of how many actions sit on either side (menu on the left,
+      // wishlist + cart on the right).
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          _IconButton(icon: Icons.menu, onTap: onMenu),
-          Expanded(
-            child: Text(
-              appName.toUpperCase(),
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: AppColors.textPrimary,
-                letterSpacing: AppSpacing.xs / 2,
-              ),
+          Text(
+            appName.toUpperCase(),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: AppColors.textPrimary,
+              letterSpacing: AppSpacing.xs / 2,
             ),
           ),
-          if (onWishlist != null) ...[
-            _BadgedIcon(
-              icon: Icons.favorite_border,
-              count: ref.watch(wishlistCountProvider),
-              onTap: onWishlist,
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _IconButton(icon: Icons.menu, onTap: onMenu),
+          ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (onWishlist != null) ...[
+                  _BadgedIcon(
+                    icon: Icons.favorite_border,
+                    count: ref.watch(wishlistCountProvider),
+                    onTap: onWishlist,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                ],
+                _BadgedIcon(
+                  icon: Icons.shopping_bag_outlined,
+                  count: ref.watch(cartCountProvider),
+                  onTap: onCart,
+                ),
+              ],
             ),
-            const SizedBox(width: AppSpacing.md),
-          ],
-          _BadgedIcon(
-            icon: Icons.shopping_bag_outlined,
-            count: ref.watch(cartCountProvider),
-            onTap: onCart,
           ),
         ],
       ),
