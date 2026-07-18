@@ -20,6 +20,12 @@ class Money {
     );
   }
 
+  /// Serializes back to the Storefront `MoneyV2` shape [Money.fromJson] reads.
+  Map<String, dynamic> toJson() => {
+    'amount': amount,
+    'currencyCode': currencyCode,
+  };
+
   static const _model = 'Money';
 
   final double amount;

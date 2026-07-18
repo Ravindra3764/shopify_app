@@ -11,6 +11,7 @@ import 'package:shopify_app/features/product_detail/presentation/screens/product
 import 'package:shopify_app/features/product_listing/presentation/screens/collection_screen.dart';
 import 'package:shopify_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:shopify_app/features/splash/presentation/screens/splash_screen.dart';
+import 'package:shopify_app/features/wishlist/presentation/screens/wishlist_screen.dart';
 
 /// Builds the app's [GoRouter].
 ///
@@ -75,6 +76,10 @@ GoRouter createRouter() {
           final handle = state.pathParameters['handle'] ?? '';
           return ProductDetailScreen(handle: handle);
         },
+      ),
+      GoRoute(
+        path: AppRoutes.wishlist,
+        builder: (context, state) => const WishlistScreen(),
       ),
       GoRoute(
         path: AppRoutes.checkout,

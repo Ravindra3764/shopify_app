@@ -15,6 +15,9 @@ abstract final class AppRoutes {
   /// Profile tab route.
   static const String profile = '/profile';
 
+  /// Wishlist route (pushed full-screen; gated by the wishlist feature flag).
+  static const String wishlist = '/wishlist';
+
   /// Checkout wizard (address → shipping → review).
   static const String checkout = '/checkout';
 
