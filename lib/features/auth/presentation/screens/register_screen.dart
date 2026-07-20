@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shopify_app/core/error/failure.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/auth/presentation/providers/auth_providers.dart';
 import 'package:shopify_app/features/auth/presentation/widgets/auth_form_scaffold.dart';
+import 'package:shopify_app/features/auth/presentation/widgets/auth_message.dart';
 import 'package:shopify_app/features/auth/presentation/widgets/auth_validators.dart';
-import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
 import 'package:shopify_app/shared/widgets/custom_text_box.dart';
 
@@ -27,6 +28,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
 
+  /// Last registration error, shown inline in red.
+  String? _error;
+
+  /// Set when the account was created but needs email verification — shown
+  /// inline in green (informational, not an error).
+  String? _info;
+
   @override
   void dispose() {
     _firstName.dispose();
@@ -39,6 +47,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     FocusScope.of(context).unfocus();
+    setState(() {
+      _error = null;
+      _info = null;
+    });
     final failure = await ref
         .read(authProvider.notifier)
         .register(
@@ -48,7 +60,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           lastName: _lastName.text.trim(),
         );
     if (!mounted || failure == null) return;
-    showAppSnackBar(context, failure.message);
+    // Account created but the store requires email verification before login.
+    if (failure is EmailVerificationRequired) {
+      _formKey.currentState?.reset();
+      setState(() => _info = failure.message);
+      return;
+    }
+    setState(() => _error = failure.message);
   }
 
   @override
@@ -112,6 +130,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           validator: validateNewPassword,
           onSubmitted: (_) => _submit(),
         ),
+        if (_info != null) ...[
+          AuthMessage(_info!, isError: false),
+          const SizedBox(height: AppSpacing.md),
+        ],
+        if (_error != null) ...[
+          AuthMessage(_error!),
+          const SizedBox(height: AppSpacing.md),
+        ],
         const SizedBox(height: AppSpacing.lg),
         CustomButton.primary(
           label: 'Create account',

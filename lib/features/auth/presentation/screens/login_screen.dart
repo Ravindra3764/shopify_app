@@ -6,8 +6,8 @@ import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/auth/presentation/providers/auth_providers.dart';
 import 'package:shopify_app/features/auth/presentation/widgets/auth_form_scaffold.dart';
+import 'package:shopify_app/features/auth/presentation/widgets/auth_message.dart';
 import 'package:shopify_app/features/auth/presentation/widgets/auth_validators.dart';
-import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
 import 'package:shopify_app/shared/widgets/custom_text_box.dart';
 
@@ -26,6 +26,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
 
+  /// Last sign-in error, shown inline (snackbars can't render here).
+  String? _error;
+
   @override
   void dispose() {
     _email.dispose();
@@ -36,11 +39,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     FocusScope.of(context).unfocus();
+    setState(() => _error = null);
     final failure = await ref
         .read(authProvider.notifier)
         .login(email: _email.text.trim(), password: _password.text);
     if (!mounted || failure == null) return;
-    showAppSnackBar(context, failure.message);
+    setState(() => _error = failure.message);
   }
 
   @override
@@ -94,6 +98,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: const Text('Forgot password?'),
           ),
         ),
+        if (_error != null) ...[
+          AuthMessage(_error!),
+          const SizedBox(height: AppSpacing.md),
+        ],
         const SizedBox(height: AppSpacing.sm),
         CustomButton.primary(
           label: 'Sign in',

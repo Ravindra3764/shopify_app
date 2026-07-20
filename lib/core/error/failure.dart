@@ -35,6 +35,13 @@ final class AuthFailure extends Failure {
   const AuthFailure(super.message);
 }
 
+/// Not a hard error: the account was created but Shopify requires the shopper
+/// to verify their email (store setting) before they can sign in. Surfaced as
+/// an informational message, not a red error.
+final class EmailVerificationRequired extends Failure {
+  const EmailVerificationRequired(super.message);
+}
+
 /// Anything not otherwise classified.
 final class UnknownFailure extends Failure {
   const UnknownFailure([super.message = 'Something went wrong.']);

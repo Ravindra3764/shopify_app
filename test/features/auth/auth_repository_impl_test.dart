@@ -136,6 +136,26 @@ void main() {
       expect(failure, isA<AuthFailure>());
       expect(failure!.message, 'Email has already been taken');
     });
+
+    test('maps CUSTOMER_DISABLED to EmailVerificationRequired', () async {
+      stub({
+        'customerCreate': {
+          'customer': null,
+          'customerUserErrors': [
+            {
+              'code': 'CUSTOMER_DISABLED',
+              'message': 'Please verify your email.',
+            },
+          ],
+        },
+      });
+
+      final result = await repo.register(email: 'new@b.com', password: 'x');
+
+      final failure = result.fold((_) => null, (f) => f);
+      expect(failure, isA<EmailVerificationRequired>());
+      expect(failure!.message, 'Please verify your email.');
+    });
   });
 
   group('fetchCustomer', () {

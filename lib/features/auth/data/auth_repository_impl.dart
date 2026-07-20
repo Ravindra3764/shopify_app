@@ -55,8 +55,8 @@ class AuthRepositoryImpl implements AuthRepository {
           },
         },
       );
-      final errors = _errorsIn(data, 'customerCreate');
-      if (errors != null) return Failed(errors);
+      final failure = _createErrors(data);
+      if (failure != null) return Failed(failure);
       // Shopify's customerCreate doesn't return a token — sign the new
       // customer in to obtain one.
       return login(email: email, password: password);
@@ -139,6 +139,33 @@ class AuthRepositoryImpl implements AuthRepository {
       return const Failed(AuthFailure('Incorrect email or password.'));
     }
     return Success(CustomerAccessToken.fromJson(tokenMap));
+  }
+
+  /// Maps `customerCreate` errors, distinguishing the `CUSTOMER_DISABLED`
+  /// code — which means the account WAS created but the store requires email
+  /// verification — into an [EmailVerificationRequired] rather than a hard
+  /// [AuthFailure]. Returns `null` when there are no errors.
+  Failure? _createErrors(Map<String, dynamic> data) {
+    final payload = parseMap(data, 'customerCreate', model: _model);
+    final errors = parseList<Map<String, dynamic>>(
+      payload,
+      'customerUserErrors',
+      model: _model,
+      fromItem: (item) =>
+          item is Map<String, dynamic> ? item : <String, dynamic>{},
+    ).where((e) => e.isNotEmpty).toList();
+    if (errors.isEmpty) return null;
+
+    final message = errors
+        .map((e) => parseString(e, 'message', model: _model))
+        .where((m) => m.isNotEmpty)
+        .join(', ');
+    final needsVerification = errors.any(
+      (e) => parseString(e, 'code', model: _model) == 'CUSTOMER_DISABLED',
+    );
+    return needsVerification
+        ? EmailVerificationRequired(message)
+        : AuthFailure(message);
   }
 
   /// Joins any `customerUserErrors`/`userErrors` messages in [field]'s payload

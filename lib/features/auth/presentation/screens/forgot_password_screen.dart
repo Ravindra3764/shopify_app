@@ -5,8 +5,8 @@ import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/auth/presentation/providers/auth_providers.dart';
 import 'package:shopify_app/features/auth/presentation/widgets/auth_form_scaffold.dart';
+import 'package:shopify_app/features/auth/presentation/widgets/auth_message.dart';
 import 'package:shopify_app/features/auth/presentation/widgets/auth_validators.dart';
-import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
 import 'package:shopify_app/shared/widgets/custom_text_box.dart';
 import 'package:shopify_app/shared/widgets/empty_state_view.dart';
@@ -32,6 +32,9 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   /// True only while the recover request is in flight.
   bool _sending = false;
 
+  /// Last error, shown inline in red.
+  String? _error;
+
   @override
   void dispose() {
     _email.dispose();
@@ -41,7 +44,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     FocusScope.of(context).unfocus();
-    setState(() => _sending = true);
+    setState(() {
+      _sending = true;
+      _error = null;
+    });
     final failure = await ref
         .read(authProvider.notifier)
         .recover(_email.text.trim());
@@ -49,8 +55,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     setState(() {
       _sending = false;
       _sent = failure == null;
+      _error = failure?.message;
     });
-    if (failure != null) showAppSnackBar(context, failure.message);
   }
 
   @override
@@ -94,6 +100,10 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 validator: validateEmail,
                 onSubmitted: (_) => _submit(),
               ),
+              if (_error != null) ...[
+                const SizedBox(height: AppSpacing.md),
+                AuthMessage(_error!),
+              ],
               const SizedBox(height: AppSpacing.lg),
               CustomButton.primary(
                 label: 'Send reset link',
