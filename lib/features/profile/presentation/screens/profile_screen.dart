@@ -39,6 +39,10 @@ class ProfileScreen extends ConsumerWidget {
       showBackButton: false,
       title: 'Profile',
       child: ListView(
+        // Clear the floating bottom nav so the sign-out button isn't hidden.
+        padding: const EdgeInsets.only(
+          bottom: AppDimensions.floatingNavClearance,
+        ),
         children: [
           const SizedBox(height: AppSpacing.sm),
           if (isAuthed)
