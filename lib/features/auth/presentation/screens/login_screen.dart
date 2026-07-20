@@ -29,6 +29,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   /// Last sign-in error, shown inline (snackbars can't render here).
   String? _error;
 
+  /// True only while this screen's sign-in request is in flight. Local so the
+  /// spinner tracks *this* action, not the global session-restore loading.
+  bool _submitting = false;
+
   @override
   void dispose() {
     _email.dispose();
@@ -39,12 +43,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     FocusScope.of(context).unfocus();
-    setState(() => _error = null);
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
     final failure = await ref
         .read(authProvider.notifier)
         .login(email: _email.text.trim(), password: _password.text);
-    if (!mounted || failure == null) return;
-    setState(() => _error = failure.message);
+    if (!mounted) return;
+    setState(() {
+      _submitting = false;
+      _error = failure?.message;
+    });
   }
 
   @override
@@ -53,7 +63,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ref.listen<bool>(isAuthenticatedProvider, (_, isAuthed) {
       if (isAuthed && context.canPop()) context.pop();
     });
-    final isLoading = ref.watch(authProvider).isLoading;
     final textTheme = Theme.of(context).textTheme;
 
     return AuthFormScaffold(
@@ -105,7 +114,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         const SizedBox(height: AppSpacing.sm),
         CustomButton.primary(
           label: 'Sign in',
-          isLoading: isLoading,
+          isLoading: _submitting,
           onPressed: _submit,
         ),
         const SizedBox(height: AppSpacing.md),

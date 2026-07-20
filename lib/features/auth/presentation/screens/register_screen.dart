@@ -35,6 +35,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   /// inline in green (informational, not an error).
   String? _info;
 
+  /// True only while this screen's registration request is in flight.
+  bool _submitting = false;
+
   @override
   void dispose() {
     _firstName.dispose();
@@ -48,6 +51,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     FocusScope.of(context).unfocus();
     setState(() {
+      _submitting = true;
       _error = null;
       _info = null;
     });
@@ -59,14 +63,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           firstName: _firstName.text.trim(),
           lastName: _lastName.text.trim(),
         );
-    if (!mounted || failure == null) return;
+    if (!mounted) return;
     // Account created but the store requires email verification before login.
-    if (failure is EmailVerificationRequired) {
-      _formKey.currentState?.reset();
-      setState(() => _info = failure.message);
-      return;
-    }
-    setState(() => _error = failure.message);
+    final needsVerification = failure is EmailVerificationRequired;
+    if (needsVerification) _formKey.currentState?.reset();
+    setState(() {
+      _submitting = false;
+      _info = needsVerification ? failure.message : null;
+      _error = (failure == null || needsVerification) ? null : failure.message;
+    });
   }
 
   @override
@@ -74,7 +79,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     ref.listen<bool>(isAuthenticatedProvider, (_, isAuthed) {
       if (isAuthed && context.canPop()) context.pop();
     });
-    final isLoading = ref.watch(authProvider).isLoading;
     final textTheme = Theme.of(context).textTheme;
 
     return AuthFormScaffold(
@@ -141,7 +145,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         const SizedBox(height: AppSpacing.lg),
         CustomButton.primary(
           label: 'Create account',
-          isLoading: isLoading,
+          isLoading: _submitting,
           onPressed: _submit,
         ),
       ],
