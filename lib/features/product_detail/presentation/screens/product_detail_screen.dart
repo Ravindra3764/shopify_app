@@ -34,9 +34,17 @@ import 'package:shopify_app/shopify/models/product_variant.dart';
 /// related products, with a sticky Add to Cart / Buy Now bar pinned to the
 /// bottom.
 class ProductDetailScreen extends ConsumerWidget {
-  const ProductDetailScreen({required this.handle, super.key});
+  const ProductDetailScreen({
+    required this.handle,
+    super.key,
+    this.sheetMode = false,
+  });
 
   final String handle;
+
+  /// `true` when embedded in the Blinkit-style sheet — hides the gallery's
+  /// floating back/wishlist buttons since the sheet provides its own header.
+  final bool sheetMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -48,7 +56,11 @@ class ProductDetailScreen extends ConsumerWidget {
       horizontalPadding: 0,
       contentTopPadding: 0,
       child: async.when(
-        data: (detail) => _ProductDetailContent(handle: handle, detail: detail),
+        data: (detail) => _ProductDetailContent(
+          handle: handle,
+          detail: detail,
+          sheetMode: sheetMode,
+        ),
         loading: () => const LoadingShimmer.productDetail(),
         error: (e, _) => ErrorView(
           message: e is Failure ? e.message : 'Something went wrong.',
@@ -60,10 +72,15 @@ class ProductDetailScreen extends ConsumerWidget {
 }
 
 class _ProductDetailContent extends ConsumerStatefulWidget {
-  const _ProductDetailContent({required this.handle, required this.detail});
+  const _ProductDetailContent({
+    required this.handle,
+    required this.detail,
+    this.sheetMode = false,
+  });
 
   final String handle;
   final ProductDetail detail;
+  final bool sheetMode;
 
   @override
   ConsumerState<_ProductDetailContent> createState() =>
@@ -121,6 +138,7 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
                   images: detail.images,
                   placeholderName: detail.title,
                   selectedIndex: detail.indexOfImage(variant?.image),
+                  showFloatingActions: !widget.sheetMode,
                   onBack: () => context.pop(),
                   isWishlisted: isWishlisted,
                   onWishlistToggle: featureFlags.wishlistEnabled
