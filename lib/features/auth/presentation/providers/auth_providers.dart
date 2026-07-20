@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/core/error/failure.dart';
 import 'package:shopify_app/core/result/result.dart';
@@ -61,24 +62,33 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
 
   /// Restores a saved session, or returns [Unauthenticated] when there's none
   /// (or the stored token is expired / no longer accepted by Shopify).
+  ///
+  /// Never throws: if secure storage is unavailable (e.g. the plugin isn't
+  /// registered yet on a fresh build), the shopper is treated as signed out so
+  /// the profile surface still renders instead of an error page.
   Future<AuthState> _restore() async {
-    final token = await _storage.readToken();
-    final expiry = await _storage.readExpiry();
-    if (token == null || expiry == null || !expiry.isAfter(DateTime.now())) {
+    try {
+      final token = await _storage.readToken();
+      final expiry = await _storage.readExpiry();
+      if (token == null || expiry == null || !expiry.isAfter(DateTime.now())) {
+        await _storage.clear();
+        return const Unauthenticated();
+      }
+
+      final renewed = await _repo.renew(token);
+      if (renewed case Success(:final value)) {
+        final customer = await _repo.fetchCustomer(value.accessToken);
+        if (customer case Success(value: final c)) {
+          await _storage.write(value.accessToken, value.expiresAt);
+          return Authenticated(customer: c, token: value.accessToken);
+        }
+      }
       await _storage.clear();
       return const Unauthenticated();
+    } on Object catch (e) {
+      if (kDebugMode) debugPrint('[Auth] session restore failed: $e');
+      return const Unauthenticated();
     }
-
-    final renewed = await _repo.renew(token);
-    if (renewed case Success(:final value)) {
-      final customer = await _repo.fetchCustomer(value.accessToken);
-      if (customer case Success(value: final c)) {
-        await _storage.write(value.accessToken, value.expiresAt);
-        return Authenticated(customer: c, token: value.accessToken);
-      }
-    }
-    await _storage.clear();
-    return const Unauthenticated();
   }
 
   /// Signs in with email + password. Returns `null` on success, else the
