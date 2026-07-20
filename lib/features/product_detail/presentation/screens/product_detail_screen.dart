@@ -138,7 +138,9 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
                   images: detail.images,
                   placeholderName: detail.title,
                   selectedIndex: detail.indexOfImage(variant?.image),
-                  showFloatingActions: !widget.sheetMode,
+                  backIcon: widget.sheetMode
+                      ? Icons.keyboard_arrow_down
+                      : Icons.arrow_back,
                   onBack: () => context.pop(),
                   isWishlisted: isWishlisted,
                   onWishlistToggle: featureFlags.wishlistEnabled

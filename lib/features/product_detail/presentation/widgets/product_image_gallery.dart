@@ -15,16 +15,16 @@ class ProductImageGallery extends StatefulWidget {
     this.isWishlisted = false,
     this.onWishlistToggle,
     this.selectedIndex,
-    this.showFloatingActions = true,
+    this.backIcon = Icons.arrow_back,
   });
 
   final List<ShopifyImage> images;
   final String placeholderName;
   final VoidCallback? onBack;
 
-  /// Whether to float the back/wishlist buttons over the image. `false` when
-  /// the Blinkit-style sheet provides its own header with these actions.
-  final bool showFloatingActions;
+  /// Leading button glyph — a back arrow on the classic page, a down chevron
+  /// in the Blinkit-style sheet.
+  final IconData backIcon;
 
   /// Whether the wishlist heart renders filled. Hidden entirely when
   /// [onWishlistToggle] is `null` (wishlist feature disabled for tenant).
@@ -99,16 +99,15 @@ class _ProductImageGalleryState extends State<ProductImageGallery> {
               fit: BoxFit.contain,
             ),
           ),
-          if (widget.showFloatingActions)
-            Positioned(
-              top: topInset + AppSpacing.sm,
-              left: AppSpacing.md,
-              child: _CircleIconButton(
-                icon: Icons.arrow_back,
-                onPressed: widget.onBack,
-              ),
+          Positioned(
+            top: topInset + AppSpacing.sm,
+            left: AppSpacing.md,
+            child: _CircleIconButton(
+              icon: widget.backIcon,
+              onPressed: widget.onBack,
             ),
-          if (widget.showFloatingActions && widget.onWishlistToggle != null)
+          ),
+          if (widget.onWishlistToggle != null)
             Positioned(
               top: topInset + AppSpacing.sm,
               right: AppSpacing.md,
