@@ -55,7 +55,7 @@ class ProfileScreen extends ConsumerWidget {
           _ProfileTile(
             icon: Icons.location_on_outlined,
             label: 'Addresses',
-            onTap: () => gated(() => comingSoon('Addresses are coming')),
+            onTap: () => context.push(AppRoutes.addresses),
           ),
           if (wishlistEnabled)
             _ProfileTile(

@@ -24,6 +24,9 @@ abstract final class AppRoutes {
   /// Password-recovery route (pushed full-screen).
   static const String forgotPassword = '/forgot-password';
 
+  /// Saved-addresses management (shared with checkout's address book).
+  static const String addresses = '/addresses';
+
   /// Wishlist route (pushed full-screen; gated by the wishlist feature flag).
   static const String wishlist = '/wishlist';
 

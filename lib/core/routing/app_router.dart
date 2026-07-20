@@ -16,6 +16,7 @@ import 'package:shopify_app/features/product_detail/domain/product_peek_args.dar
 import 'package:shopify_app/features/product_detail/presentation/screens/product_detail_screen.dart';
 import 'package:shopify_app/features/product_detail/presentation/screens/product_sheet_screen.dart';
 import 'package:shopify_app/features/product_listing/presentation/screens/collection_screen.dart';
+import 'package:shopify_app/features/profile/presentation/screens/addresses_screen.dart';
 import 'package:shopify_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:shopify_app/features/search/presentation/screens/search_screen.dart';
 import 'package:shopify_app/features/splash/presentation/screens/splash_screen.dart';
@@ -124,6 +125,10 @@ GoRouter createRouter({bool sheetProductDetail = false}) {
       GoRoute(
         path: AppRoutes.forgotPassword,
         builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.addresses,
+        builder: (context, state) => const AddressesScreen(),
       ),
       GoRoute(
         path: AppRoutes.wishlist,
