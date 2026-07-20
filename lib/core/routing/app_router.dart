@@ -3,6 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/routing/app_shell.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
+import 'package:shopify_app/features/auth/presentation/screens/forgot_password_screen.dart';
+import 'package:shopify_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:shopify_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:shopify_app/features/cart/presentation/screens/cart_screen.dart';
 import 'package:shopify_app/features/checkout/domain/order_confirmation.dart';
 import 'package:shopify_app/features/checkout/presentation/screens/checkout_payment_screen.dart';
@@ -109,6 +112,18 @@ GoRouter createRouter({bool sheetProductDetail = false}) {
             child: ProductDetailScreen(handle: handle),
           );
         },
+      ),
+      GoRoute(
+        path: AppRoutes.login,
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.register,
+        builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        builder: (context, state) => const ForgotPasswordScreen(),
       ),
       GoRoute(
         path: AppRoutes.wishlist,

@@ -15,6 +15,15 @@ abstract final class AppRoutes {
   /// Profile tab route.
   static const String profile = '/profile';
 
+  /// Sign-in route (pushed full-screen).
+  static const String login = '/login';
+
+  /// Registration route (pushed full-screen).
+  static const String register = '/register';
+
+  /// Password-recovery route (pushed full-screen).
+  static const String forgotPassword = '/forgot-password';
+
   /// Wishlist route (pushed full-screen; gated by the wishlist feature flag).
   static const String wishlist = '/wishlist';
 
