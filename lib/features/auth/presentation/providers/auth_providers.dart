@@ -126,7 +126,7 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
     };
     state = const AsyncLoading<AuthState>().copyWithPrevious(state);
     if (token != null) await _repo.logout(token);
-    await _storage.clear();
+    await _safeClear();
     state = const AsyncData(Unauthenticated());
   }
 
@@ -148,12 +148,34 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
             state = const AsyncData(Unauthenticated());
             return failure;
           case Success(value: final customer):
-            await _storage.write(value.accessToken, value.expiresAt);
+            // Persist for next launch. A storage failure (e.g. the secure-
+            // storage plugin isn't registered on this build) must not fail the
+            // sign-in — the session still works in memory this run.
+            await _safeWrite(value.accessToken, value.expiresAt);
             state = AsyncData(
               Authenticated(customer: customer, token: value.accessToken),
             );
             return null;
         }
+    }
+  }
+
+  /// Writes the session to secure storage, swallowing (and logging) any
+  /// platform/plugin error so it can't crash the auth flow.
+  Future<void> _safeWrite(String token, DateTime expiresAt) async {
+    try {
+      await _storage.write(token, expiresAt);
+    } on Object catch (e) {
+      if (kDebugMode) debugPrint('[Auth] token persist failed: $e');
+    }
+  }
+
+  /// Clears secure storage, swallowing (and logging) any platform/plugin error.
+  Future<void> _safeClear() async {
+    try {
+      await _storage.clear();
+    } on Object catch (e) {
+      if (kDebugMode) debugPrint('[Auth] token clear failed: $e');
     }
   }
 }
