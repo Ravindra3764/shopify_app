@@ -63,27 +63,36 @@ class AuthNotifier extends AsyncNotifier<AuthState> {
   /// Restores a saved session, or returns [Unauthenticated] when there's none
   /// (or the stored token is expired / no longer accepted by Shopify).
   ///
-  /// Never throws: if secure storage is unavailable (e.g. the plugin isn't
-  /// registered yet on a fresh build), the shopper is treated as signed out so
-  /// the profile surface still renders instead of an error page.
+  /// Optimised for the common case: the stored token is used directly (one
+  /// request) and only renewed if Shopify actually rejects it — avoiding a
+  /// renew round-trip on every launch. Never throws: if secure storage is
+  /// unavailable (e.g. the plugin isn't registered on a fresh build), the
+  /// shopper is treated as signed out so the profile still renders.
   Future<AuthState> _restore() async {
     try {
       final token = await _storage.readToken();
       final expiry = await _storage.readExpiry();
       if (token == null || expiry == null || !expiry.isAfter(DateTime.now())) {
-        await _storage.clear();
+        await _safeClear();
         return const Unauthenticated();
       }
 
+      // Use the stored token as-is first.
+      final customer = await _repo.fetchCustomer(token);
+      if (customer case Success(value: final c)) {
+        return Authenticated(customer: c, token: token);
+      }
+
+      // Rejected — try a single renew before giving up.
       final renewed = await _repo.renew(token);
       if (renewed case Success(:final value)) {
-        final customer = await _repo.fetchCustomer(value.accessToken);
-        if (customer case Success(value: final c)) {
-          await _storage.write(value.accessToken, value.expiresAt);
+        final renewedCustomer = await _repo.fetchCustomer(value.accessToken);
+        if (renewedCustomer case Success(value: final c)) {
+          await _safeWrite(value.accessToken, value.expiresAt);
           return Authenticated(customer: c, token: value.accessToken);
         }
       }
-      await _storage.clear();
+      await _safeClear();
       return const Unauthenticated();
     } on Object catch (e) {
       if (kDebugMode) debugPrint('[Auth] session restore failed: $e');

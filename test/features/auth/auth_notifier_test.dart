@@ -23,10 +23,15 @@ CustomerAccessToken _token([String value = 'tok']) => CustomerAccessToken(
 
 /// Configurable fake repository — each field overrides one method's result.
 class _FakeAuthRepository implements AuthRepository {
-  _FakeAuthRepository({this.loginResult, this.renewResult});
+  _FakeAuthRepository({
+    this.loginResult,
+    this.renewResult,
+    this.customerResult,
+  });
 
   Result<CustomerAccessToken, Failure>? loginResult;
   Result<CustomerAccessToken, Failure>? renewResult;
+  Result<Customer, Failure>? customerResult;
   bool logoutCalled = false;
 
   @override
@@ -59,7 +64,7 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<Result<Customer, Failure>> fetchCustomer(String token) async =>
-      const Success(_customer);
+      customerResult ?? const Success(_customer);
 }
 
 /// In-memory [AuthStorage].
@@ -125,19 +130,24 @@ void main() {
       expect(container.read(currentCustomerProvider)?.email, 'a@b.com');
     });
 
-    test('drops the session when renew fails', () async {
-      final storage = _FakeAuthStorage(
-        token: 'saved',
-        expiry: DateTime.now().add(const Duration(days: 10)),
-      );
-      final repo = _FakeAuthRepository(
-        renewResult: const Failed(AuthFailure('expired')),
-      );
-      final container = _container(repo, storage);
+    test(
+      'drops the session when the token is rejected and renew fails',
+      () async {
+        final storage = _FakeAuthStorage(
+          token: 'saved',
+          expiry: DateTime.now().add(const Duration(days: 10)),
+        );
+        final repo = _FakeAuthRepository(
+          // Stored token rejected, and renew also fails → sign out.
+          customerResult: const Failed(AuthFailure('bad token')),
+          renewResult: const Failed(AuthFailure('expired')),
+        );
+        final container = _container(repo, storage);
 
-      final state = await container.read(authProvider.future);
-      expect(state, isA<Unauthenticated>());
-    });
+        final state = await container.read(authProvider.future);
+        expect(state, isA<Unauthenticated>());
+      },
+    );
 
     test('login success → Authenticated + token persisted', () async {
       final storage = _FakeAuthStorage();

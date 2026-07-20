@@ -7,6 +7,7 @@ import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/auth/presentation/providers/auth_providers.dart';
 import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
+import 'package:shopify_app/shared/widgets/confirm_dialog.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
 import 'package:shopify_app/shopify/models/customer.dart';
@@ -17,6 +18,18 @@ import 'package:shopify_app/shopify/models/customer.dart';
 /// actions route to sign-in when tapped by a guest.
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
+
+  /// Confirms before signing out, so an accidental tap doesn't end the session.
+  Future<void> _confirmSignOut(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showConfirmDialog(
+      context,
+      title: 'Sign out',
+      message: 'Are you sure you want to sign out?',
+      confirmLabel: 'Sign out',
+      isDestructive: true,
+    );
+    if (confirmed) await ref.read(authProvider.notifier).logout();
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -93,7 +106,7 @@ class ProfileScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.xl),
             CustomButton.outline(
               label: 'Sign out',
-              onPressed: () => ref.read(authProvider.notifier).logout(),
+              onPressed: () => _confirmSignOut(context, ref),
             ),
           ],
           const SizedBox(height: AppSpacing.lg),
