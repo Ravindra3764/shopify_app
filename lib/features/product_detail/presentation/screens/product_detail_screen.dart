@@ -38,6 +38,7 @@ class ProductDetailScreen extends ConsumerWidget {
     required this.handle,
     super.key,
     this.sheetMode = false,
+    this.sheetPull,
   });
 
   final String handle;
@@ -45,6 +46,11 @@ class ProductDetailScreen extends ConsumerWidget {
   /// `true` when embedded in the Blinkit-style sheet — hides the gallery's
   /// floating back/wishlist buttons since the sheet provides its own header.
   final bool sheetMode;
+
+  /// Sheet pull-down distance (px). When set, the content scroll bounces and
+  /// counter-translates by this amount so a top over-scroll moves the whole
+  /// card instead of just the image.
+  final ValueNotifier<double>? sheetPull;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -60,6 +66,7 @@ class ProductDetailScreen extends ConsumerWidget {
           handle: handle,
           detail: detail,
           sheetMode: sheetMode,
+          sheetPull: sheetPull,
         ),
         loading: () => const LoadingShimmer.productDetail(),
         error: (e, _) => ErrorView(
@@ -76,11 +83,13 @@ class _ProductDetailContent extends ConsumerStatefulWidget {
     required this.handle,
     required this.detail,
     this.sheetMode = false,
+    this.sheetPull,
   });
 
   final String handle;
   final ProductDetail detail;
   final bool sheetMode;
+  final ValueNotifier<double>? sheetPull;
 
   @override
   ConsumerState<_ProductDetailContent> createState() =>
@@ -100,6 +109,20 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
         : widget.detail.images.first,
     compareAtPrice: widget.detail.compareAtPrice,
   );
+
+  /// Counter-translates the scroll content up by the sheet's pull distance so
+  /// its top over-scroll (bounce) cancels out — the sheet moves the whole card
+  /// instead, while the sticky bar (outside this scroll) also rides the card.
+  Widget _wrapSheetPull(Widget child) {
+    final pull = widget.sheetPull;
+    if (pull == null) return child;
+    return ValueListenableBuilder<double>(
+      valueListenable: pull,
+      child: child,
+      builder: (context, offset, child) =>
+          Transform.translate(offset: Offset(0, -offset), child: child),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -129,42 +152,49 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
     return Column(
       children: [
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ProductImageGallery(
-                  images: detail.images,
-                  placeholderName: detail.title,
-                  selectedIndex: detail.indexOfImage(variant?.image),
-                  showFloatingActions: !widget.sheetMode,
-                  onBack: () => context.pop(),
-                  isWishlisted: isWishlisted,
-                  onWishlistToggle: featureFlags.wishlistEnabled
-                      ? () => ref
-                            .read(wishlistProvider.notifier)
-                            .toggle(_asProduct)
-                      : null,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                _ProductInfo(
-                  detail: detail,
-                  variant: variant,
-                  selection: selection,
-                  featureFlags: featureFlags,
-                  shippingReturnCopy: shippingReturnCopy ?? '',
-                  onSelectOption: selectionNotifier.selectOption,
-                  onIncrementQuantity: canIncreaseQty
-                      ? selectionNotifier.incrementQuantity
-                      : null,
-                  onDecrementQuantity: selection.quantity > 1
-                      ? selectionNotifier.decrementQuantity
-                      : null,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                _RelatedProducts(productId: detail.id),
-              ],
+          child: _wrapSheetPull(
+            SingleChildScrollView(
+              physics: widget.sheetMode
+                  ? const BouncingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    )
+                  : null,
+              padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ProductImageGallery(
+                    images: detail.images,
+                    placeholderName: detail.title,
+                    selectedIndex: detail.indexOfImage(variant?.image),
+                    showFloatingActions: !widget.sheetMode,
+                    onBack: () => context.pop(),
+                    isWishlisted: isWishlisted,
+                    onWishlistToggle: featureFlags.wishlistEnabled
+                        ? () => ref
+                              .read(wishlistProvider.notifier)
+                              .toggle(_asProduct)
+                        : null,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _ProductInfo(
+                    detail: detail,
+                    variant: variant,
+                    selection: selection,
+                    featureFlags: featureFlags,
+                    shippingReturnCopy: shippingReturnCopy ?? '',
+                    onSelectOption: selectionNotifier.selectOption,
+                    onIncrementQuantity: canIncreaseQty
+                        ? selectionNotifier.incrementQuantity
+                        : null,
+                    onDecrementQuantity: selection.quantity > 1
+                        ? selectionNotifier.decrementQuantity
+                        : null,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  _RelatedProducts(productId: detail.id),
+                ],
+              ),
             ),
           ),
         ),

@@ -57,11 +57,23 @@ class _ProductSheetScreenState extends State<ProductSheetScreen> {
   /// Scroll distance (px) over which the card morphs into a full page.
   static const _morphOver = 140.0;
 
+  /// Downward pull past the top (px) that dismisses a peek card on release.
+  static const _dismissPull = 120.0;
+
+  /// How far the card is currently pulled down from the top (px). Mirrors the
+  /// content's top over-scroll so the whole card follows the finger both ways
+  /// within one drag; the bounce springs it back on release for free.
+  final ValueNotifier<double> _dragOffset = ValueNotifier(0);
+
+  /// Guards against popping twice once a dismiss is triggered.
+  bool _closing = false;
+
   @override
   void dispose() {
     HapticFeedback.lightImpact(); // haptic on close
     _pageController.dispose();
     _fullness.dispose();
+    _dragOffset.dispose();
     super.dispose();
   }
 
@@ -70,10 +82,29 @@ class _ProductSheetScreenState extends State<ProductSheetScreen> {
     context.pop();
   }
 
+  /// On finger lift, a pull past [_dismissPull] closes the card; anything less
+  /// lets the content's bounce spring it back to the top.
+  void _onPointerUp(PointerUpEvent event) {
+    if (_closing) return;
+    if (_dragOffset.value > _dismissPull) {
+      _closing = true;
+      _close();
+    }
+  }
+
   bool _onScroll(ScrollNotification n) {
     // Only the card's vertical content scroll drives the morph, not the
     // horizontal PageView.
     if (n.metrics.axis != Axis.vertical) return false;
+
+    // At the top of a peek card, the content's top over-scroll (negative
+    // pixels) tracks the finger both ways in one drag — mirror it onto the
+    // whole card so the card follows. Release is handled on pointer-up.
+    if (!_full && !_closing) {
+      final pixels = n.metrics.pixels;
+      _dragOffset.value = pixels < 0 ? -pixels : 0;
+    }
+
     _fullness.value = (n.metrics.pixels / _morphOver).clamp(0.0, 1.0);
     final full = _fullness.value >= 0.999;
     if (full != _full) {
@@ -97,53 +128,67 @@ class _ProductSheetScreenState extends State<ProductSheetScreen> {
     final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: NotificationListener<ScrollNotification>(
-        onNotification: _onScroll,
-        child: Stack(
-          children: [
-            // The card slides up to cover the status bar as it expands.
-            ValueListenableBuilder<double>(
-              valueListenable: _fullness,
-              child: PageView.builder(
-                controller: _pageController,
-                onPageChanged: (i) => setState(() => _currentIndex = i),
-                physics: _full
-                    ? const NeverScrollableScrollPhysics()
-                    : const PageScrollPhysics(),
-                itemCount: widget.peek.handles.length,
-                itemBuilder: (context, i) => _MorphCard(
-                  fullness: _fullness,
-                  child: MediaQuery.removePadding(
-                    context: context,
-                    removeTop: true,
-                    child: ProductDetailScreen(
-                      handle: widget.peek.handles[i],
-                      sheetMode: true,
+      body: Listener(
+        onPointerUp: _onPointerUp,
+        child: NotificationListener<ScrollNotification>(
+          onNotification: _onScroll,
+          // The whole card (and its pinned buttons) follows the pull down.
+          child: ValueListenableBuilder<double>(
+            valueListenable: _dragOffset,
+            builder: (context, dy, child) =>
+                Transform.translate(offset: Offset(0, dy), child: child),
+            child: Stack(
+              children: [
+                // The card slides up to cover the status bar as it expands.
+                ValueListenableBuilder<double>(
+                  valueListenable: _fullness,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    onPageChanged: (i) => setState(() => _currentIndex = i),
+                    physics: _full
+                        ? const NeverScrollableScrollPhysics()
+                        : const PageScrollPhysics(),
+                    itemCount: widget.peek.handles.length,
+                    itemBuilder: (context, i) => _MorphCard(
+                      fullness: _fullness,
+                      child: MediaQuery.removePadding(
+                        context: context,
+                        removeTop: true,
+                        child: ProductDetailScreen(
+                          handle: widget.peek.handles[i],
+                          sheetMode: true,
+                          // Cancels the content bounce so a top over-scroll
+                          // moves the whole card, not just the image.
+                          sheetPull: _dragOffset,
+                        ),
+                      ),
                     ),
                   ),
+                  builder: (context, t, child) => Padding(
+                    padding: EdgeInsets.only(top: lerpDouble(topInset, 0, t)!),
+                    child: child,
+                  ),
                 ),
-              ),
-              builder: (context, t, child) => Padding(
-                padding: EdgeInsets.only(top: lerpDouble(topInset, 0, t)!),
-                child: child,
-              ),
+                // Pinned buttons over the card, always visible.
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: _PinnedActions(
+                    handle: widget.peek.handles[_currentIndex],
+                    onClose: _close,
+                    fullness: _fullness,
+                    // Blank strip the PageView leaves at each edge; the card's
+                    // outer edge sits here at peek state.
+                    peekEdge:
+                        (1 - _peekFraction) /
+                        2 *
+                        MediaQuery.of(context).size.width,
+                  ),
+                ),
+              ],
             ),
-            // Pinned buttons over the card, always visible.
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: _PinnedActions(
-                handle: widget.peek.handles[_currentIndex],
-                onClose: _close,
-                fullness: _fullness,
-                // Blank strip the PageView leaves at each edge from the peek
-                // viewport — the card's outer edge sits here at peek state.
-                peekEdge:
-                    (1 - _peekFraction) / 2 * MediaQuery.of(context).size.width,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
