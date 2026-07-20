@@ -28,6 +28,13 @@ final class ShopifyFailure extends Failure {
   final int? statusCode;
 }
 
+/// Customer authentication error surfaced from `customerUserErrors` — invalid
+/// credentials, an email already taken, a weak password, an expired token, etc.
+/// [message] is the shopper-facing text (joined Shopify error messages).
+final class AuthFailure extends Failure {
+  const AuthFailure(super.message);
+}
+
 /// Anything not otherwise classified.
 final class UnknownFailure extends Failure {
   const UnknownFailure([super.message = 'Something went wrong.']);
