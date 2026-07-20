@@ -3,6 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/routing/app_shell.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
+import 'package:shopify_app/features/auth/presentation/screens/forgot_password_screen.dart';
+import 'package:shopify_app/features/auth/presentation/screens/login_screen.dart';
+import 'package:shopify_app/features/auth/presentation/screens/register_screen.dart';
 import 'package:shopify_app/features/cart/presentation/screens/cart_screen.dart';
 import 'package:shopify_app/features/checkout/domain/order_confirmation.dart';
 import 'package:shopify_app/features/checkout/presentation/screens/checkout_payment_screen.dart';
@@ -13,6 +16,7 @@ import 'package:shopify_app/features/product_detail/domain/product_peek_args.dar
 import 'package:shopify_app/features/product_detail/presentation/screens/product_detail_screen.dart';
 import 'package:shopify_app/features/product_detail/presentation/screens/product_sheet_screen.dart';
 import 'package:shopify_app/features/product_listing/presentation/screens/collection_screen.dart';
+import 'package:shopify_app/features/profile/presentation/screens/addresses_screen.dart';
 import 'package:shopify_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:shopify_app/features/search/presentation/screens/search_screen.dart';
 import 'package:shopify_app/features/splash/presentation/screens/splash_screen.dart';
@@ -109,6 +113,22 @@ GoRouter createRouter({bool sheetProductDetail = false}) {
             child: ProductDetailScreen(handle: handle),
           );
         },
+      ),
+      GoRoute(
+        path: AppRoutes.login,
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.register,
+        builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        builder: (context, state) => const ForgotPasswordScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.addresses,
+        builder: (context, state) => const AddressesScreen(),
       ),
       GoRoute(
         path: AppRoutes.wishlist,

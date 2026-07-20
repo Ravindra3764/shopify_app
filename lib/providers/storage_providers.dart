@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/core/storage/address_storage.dart';
+import 'package:shopify_app/core/storage/auth_storage.dart';
 import 'package:shopify_app/core/storage/cart_storage.dart';
 import 'package:shopify_app/core/storage/onboarding_storage.dart';
 import 'package:shopify_app/core/storage/search_history_storage.dart';
@@ -26,6 +27,12 @@ final wishlistStorageProvider = Provider<WishlistStorage>(
 /// Persistent onboarding-hint storage. Overridden in `bootstrap()` with a
 /// `SharedPreferences`-backed instance once prefs have loaded.
 final onboardingStorageProvider = Provider<OnboardingStorage>(
+  (ref) => throw UnimplementedError('overridden in bootstrap()'),
+);
+
+/// Secure customer-session storage. Overridden in `bootstrap()` with a
+/// `flutter_secure_storage`-backed instance.
+final authStorageProvider = Provider<AuthStorage>(
   (ref) => throw UnimplementedError('overridden in bootstrap()'),
 );
 

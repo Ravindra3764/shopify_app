@@ -24,6 +24,7 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
     String cartId, {
     required String email,
     required MailingAddress address,
+    String? customerAccessToken,
   }) async {
     try {
       final data = await _client.query(
@@ -32,6 +33,10 @@ class CheckoutRepositoryImpl implements CheckoutRepository {
           'cartId': cartId,
           'buyerIdentity': {
             'email': email,
+            // Attach the signed-in customer so the order lands in their
+            // account; omitted for guests.
+            if (customerAccessToken != null)
+              'customerAccessToken': customerAccessToken,
             // Pin the cart to the tenant's market (matches how the cart was
             // created). This must be a market the store actually sells to —
             // otherwise Shopify silently zeroes the cart. The delivery address

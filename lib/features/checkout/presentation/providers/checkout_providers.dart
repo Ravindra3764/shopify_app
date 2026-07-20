@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/core/error/failure.dart';
 import 'package:shopify_app/core/storage/address_storage.dart';
+import 'package:shopify_app/features/auth/presentation/providers/auth_providers.dart';
 import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart'
     show PromoOutcome, cartProvider, cartRepositoryProvider;
 import 'package:shopify_app/features/checkout/data/checkout_repository_impl.dart';
@@ -96,6 +97,8 @@ class CheckoutNotifier extends AutoDisposeAsyncNotifier<CheckoutState> {
       current.cart.id,
       email: email,
       address: address,
+      // Associate the order with the shopper's account when signed in.
+      customerAccessToken: ref.read(authTokenProvider),
     );
     state = result.fold(
       (cart) {
