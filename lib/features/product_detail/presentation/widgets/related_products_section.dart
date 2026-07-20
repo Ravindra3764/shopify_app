@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/features/product_detail/presentation/product_navigation.dart';
 import 'package:shopify_app/features/wishlist/presentation/widgets/wishlist_product_card.dart';
 import 'package:shopify_app/shared/widgets/section_header.dart';
 import 'package:shopify_app/shopify/models/product.dart';
@@ -10,12 +11,10 @@ class RelatedProductsSection extends StatelessWidget {
   const RelatedProductsSection({
     required this.products,
     super.key,
-    this.onProductTap,
     this.title = 'You May Also Like',
   });
 
   final List<Product> products;
-  final void Function(Product product)? onProductTap;
   final String title;
 
   @override
@@ -37,14 +36,11 @@ class RelatedProductsSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
             itemCount: products.length,
             separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.md),
-            itemBuilder: (_, i) {
-              final product = products[i];
+            itemBuilder: (context, i) {
               return WishlistProductCard(
-                product: product,
+                product: products[i],
                 width: AppDimensions.productCardWidth,
-                onTap: onProductTap == null
-                    ? null
-                    : () => onProductTap!(product),
+                onTap: () => openProductFromList(context, products, i),
               );
             },
           ),

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:shopify_app/core/error/failure.dart';
-import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/features/product_detail/presentation/product_navigation.dart';
 import 'package:shopify_app/features/search/domain/search_filters.dart';
 import 'package:shopify_app/features/search/presentation/providers/search_providers.dart';
 import 'package:shopify_app/features/search/presentation/widgets/search_filter_sheet.dart';
@@ -15,7 +14,6 @@ import 'package:shopify_app/shared/widgets/custom_text_box.dart';
 import 'package:shopify_app/shared/widgets/empty_state_view.dart';
 import 'package:shopify_app/shared/widgets/error_view.dart';
 import 'package:shopify_app/shared/widgets/loading_shimmer.dart';
-import 'package:shopify_app/shopify/models/product.dart';
 
 /// Full-text product search: a debounced field with recent/popular suggestions,
 /// a filter sheet, and a results grid.
@@ -111,12 +109,16 @@ class _SearchBody extends ConsumerWidget {
     return ref
         .watch(searchResultsProvider)
         .when(
-          data: (products) => products.isEmpty
+          data: (results) => results.items.isEmpty
               ? EmptyStateView(
                   icon: Icons.search_off,
                   message: 'No products found for "$query".',
                 )
-              : _ResultsGrid(products: products),
+              : _ResultsGrid(
+                  results: results,
+                  onLoadMore: () =>
+                      ref.read(searchResultsProvider.notifier).loadMore(),
+                ),
           loading: () => const LoadingShimmer.grid(),
           error: (e, _) => ErrorView(
             message: e is Failure ? e.message : 'Something went wrong.',
@@ -127,29 +129,55 @@ class _SearchBody extends ConsumerWidget {
 }
 
 class _ResultsGrid extends StatelessWidget {
-  const _ResultsGrid({required this.products});
+  const _ResultsGrid({required this.results, required this.onLoadMore});
 
-  final List<Product> products;
+  final SearchResults results;
+  final VoidCallback onLoadMore;
+
+  /// Distance from the bottom (px) at which to prefetch the next page.
+  static const _prefetchExtent = 400.0;
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      itemCount: products.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: AppSpacing.lg,
-        crossAxisSpacing: AppSpacing.md,
-        mainAxisExtent: AppDimensions.productCardHeight,
-      ),
-      itemBuilder: (context, i) {
-        final product = products[i];
-        return WishlistProductCard(
-          product: product,
-          onTap: () =>
-              context.push(AppRoutes.productDetailPath(product.handle)),
-        );
+    final products = results.items;
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        final m = notification.metrics;
+        if (results.hasMore &&
+            !results.loadingMore &&
+            m.pixels >= m.maxScrollExtent - _prefetchExtent) {
+          onLoadMore();
+        }
+        return false;
       },
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: AppSpacing.lg,
+                crossAxisSpacing: AppSpacing.md,
+                mainAxisExtent: AppDimensions.productCardHeight,
+              ),
+              delegate: SliverChildBuilderDelegate((context, i) {
+                return WishlistProductCard(
+                  product: products[i],
+                  onTap: () => openProductFromList(context, products, i),
+                );
+              }, childCount: products.length),
+            ),
+          ),
+          if (results.loadingMore)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(AppSpacing.md),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

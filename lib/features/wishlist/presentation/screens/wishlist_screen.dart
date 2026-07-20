@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/features/product_detail/presentation/product_navigation.dart';
 import 'package:shopify_app/features/wishlist/presentation/providers/wishlist_providers.dart';
 import 'package:shopify_app/features/wishlist/presentation/widgets/wishlist_product_card.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
@@ -41,11 +42,9 @@ class WishlistScreen extends ConsumerWidget {
                 mainAxisExtent: AppDimensions.productCardHeight,
               ),
               itemBuilder: (context, i) {
-                final product = products[i];
                 return WishlistProductCard(
-                  product: product,
-                  onTap: () =>
-                      context.push(AppRoutes.productDetailPath(product.handle)),
+                  product: products[i],
+                  onTap: () => openProductFromList(context, products, i),
                 );
               },
             ),

@@ -3,6 +3,7 @@ import 'package:shopify_app/core/error/shopify_exception.dart';
 import 'package:shopify_app/core/network/api_client.dart';
 import 'package:shopify_app/core/result/result.dart';
 import 'package:shopify_app/core/utils/json_parse.dart';
+import 'package:shopify_app/features/search/domain/product_search_page.dart';
 import 'package:shopify_app/features/search/domain/search_repository.dart';
 import 'package:shopify_app/shopify/models/product.dart';
 import 'package:shopify_app/shopify/queries/search_queries.dart';
@@ -14,20 +15,22 @@ class SearchRepositoryImpl implements SearchRepository {
   final ApiClient _client;
 
   static const _model = 'SearchRepository';
-  static const _limit = 30;
+  static const _pageSize = 20;
 
   @override
-  Future<Result<List<Product>, Failure>> searchProducts(
+  Future<Result<ProductSearchPage, Failure>> searchProducts(
     String query, {
     String? sortKey,
     bool reverse = false,
+    String? after,
   }) async {
     try {
       final data = await _client.query(
         kSearchProductsQuery,
         variables: {
           'query': query,
-          'first': _limit,
+          'first': _pageSize,
+          if (after != null) 'after': after,
           if (sortKey != null) 'sortKey': sortKey,
           'reverse': reverse,
         },
@@ -44,7 +47,14 @@ class SearchRepositoryImpl implements SearchRepository {
           return Product.fromJson(parseMap(edge, 'node', model: _model));
         },
       );
-      return Success(products);
+      final pageInfo = parseMap(connection, 'pageInfo', model: _model);
+      return Success(
+        ProductSearchPage(
+          products: products,
+          hasNextPage: parseBool(pageInfo, 'hasNextPage', model: _model),
+          endCursor: parseStringOrNull(pageInfo, 'endCursor', model: _model),
+        ),
+      );
     } on ShopifyException catch (e) {
       return Failed(Failure.fromShopify(e));
     }

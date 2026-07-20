@@ -12,6 +12,7 @@ class FeatureFlags {
     this.phoneRequired = false,
     this.wishlistDoubleTapHintEnabled = true,
     this.wishlistHintAlways = false,
+    this.productDetailSheetEnabled = false,
   });
 
   /// Reads flags from `.env` string values (`"true"` / `"false"`).
@@ -43,6 +44,10 @@ class FeatureFlags {
         fallback: true,
       ),
       wishlistHintAlways: flag('WISHLIST_HINT_ALWAYS', fallback: false),
+      productDetailSheetEnabled: flag(
+        'PRODUCT_DETAIL_SHEET_ENABLED',
+        fallback: false,
+      ),
     );
   }
 
@@ -74,4 +79,9 @@ class FeatureFlags {
   /// When `true`, the hint shows on every app launch (useful for demos/QA);
   /// when `false` (default), it shows once and never again.
   final bool wishlistHintAlways;
+
+  /// When `true`, tapping a product opens the Blinkit-style draggable sheet
+  /// (partial preview that expands to full, horizontal-swipe between the
+  /// siblings you came from); `false` uses the classic full-page detail.
+  final bool productDetailSheetEnabled;
 }

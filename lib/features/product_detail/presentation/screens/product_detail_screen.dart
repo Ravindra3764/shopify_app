@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shopify_app/config/feature_flags.dart';
 import 'package:shopify_app/core/error/failure.dart';
-import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart';
@@ -35,9 +34,23 @@ import 'package:shopify_app/shopify/models/product_variant.dart';
 /// related products, with a sticky Add to Cart / Buy Now bar pinned to the
 /// bottom.
 class ProductDetailScreen extends ConsumerWidget {
-  const ProductDetailScreen({required this.handle, super.key});
+  const ProductDetailScreen({
+    required this.handle,
+    super.key,
+    this.sheetMode = false,
+    this.sheetPull,
+  });
 
   final String handle;
+
+  /// `true` when embedded in the Blinkit-style sheet — hides the gallery's
+  /// floating back/wishlist buttons since the sheet provides its own header.
+  final bool sheetMode;
+
+  /// Sheet pull-down distance (px). When set, the content scroll bounces and
+  /// counter-translates by this amount so a top over-scroll moves the whole
+  /// card instead of just the image.
+  final ValueNotifier<double>? sheetPull;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -49,7 +62,12 @@ class ProductDetailScreen extends ConsumerWidget {
       horizontalPadding: 0,
       contentTopPadding: 0,
       child: async.when(
-        data: (detail) => _ProductDetailContent(handle: handle, detail: detail),
+        data: (detail) => _ProductDetailContent(
+          handle: handle,
+          detail: detail,
+          sheetMode: sheetMode,
+          sheetPull: sheetPull,
+        ),
         loading: () => const LoadingShimmer.productDetail(),
         error: (e, _) => ErrorView(
           message: e is Failure ? e.message : 'Something went wrong.',
@@ -61,10 +79,17 @@ class ProductDetailScreen extends ConsumerWidget {
 }
 
 class _ProductDetailContent extends ConsumerStatefulWidget {
-  const _ProductDetailContent({required this.handle, required this.detail});
+  const _ProductDetailContent({
+    required this.handle,
+    required this.detail,
+    this.sheetMode = false,
+    this.sheetPull,
+  });
 
   final String handle;
   final ProductDetail detail;
+  final bool sheetMode;
+  final ValueNotifier<double>? sheetPull;
 
   @override
   ConsumerState<_ProductDetailContent> createState() =>
@@ -84,6 +109,20 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
         : widget.detail.images.first,
     compareAtPrice: widget.detail.compareAtPrice,
   );
+
+  /// Counter-translates the scroll content up by the sheet's pull distance so
+  /// its top over-scroll (bounce) cancels out — the sheet moves the whole card
+  /// instead, while the sticky bar (outside this scroll) also rides the card.
+  Widget _wrapSheetPull(Widget child) {
+    final pull = widget.sheetPull;
+    if (pull == null) return child;
+    return ValueListenableBuilder<double>(
+      valueListenable: pull,
+      child: child,
+      builder: (context, offset, child) =>
+          Transform.translate(offset: Offset(0, -offset), child: child),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -113,26 +152,32 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
     return Column(
       children: [
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: AppSpacing.xl),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ProductImageGallery(
-                  images: detail.images,
-                  placeholderName: detail.title,
-                  selectedIndex: detail.indexOfImage(variant?.image),
-                  onBack: () => context.pop(),
-                  isWishlisted: isWishlisted,
-                  onWishlistToggle: featureFlags.wishlistEnabled
-                      ? () => ref
-                            .read(wishlistProvider.notifier)
-                            .toggle(_asProduct)
-                      : null,
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: _ProductInfo(
+          child: _wrapSheetPull(
+            SingleChildScrollView(
+              physics: widget.sheetMode
+                  ? const BouncingScrollPhysics(
+                      parent: AlwaysScrollableScrollPhysics(),
+                    )
+                  : null,
+              padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ProductImageGallery(
+                    images: detail.images,
+                    placeholderName: detail.title,
+                    selectedIndex: detail.indexOfImage(variant?.image),
+                    showFloatingActions: !widget.sheetMode,
+                    onBack: () => context.pop(),
+                    isWishlisted: isWishlisted,
+                    onWishlistToggle: featureFlags.wishlistEnabled
+                        ? () => ref
+                              .read(wishlistProvider.notifier)
+                              .toggle(_asProduct)
+                        : null,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _ProductInfo(
                     detail: detail,
                     variant: variant,
                     selection: selection,
@@ -146,10 +191,10 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
                         ? selectionNotifier.decrementQuantity
                         : null,
                   ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                _RelatedProducts(productId: detail.id),
-              ],
+                  const SizedBox(height: AppSpacing.lg),
+                  _RelatedProducts(productId: detail.id),
+                ],
+              ),
             ),
           ),
         ),
@@ -195,62 +240,84 @@ class _ProductInfo extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (detail.vendor != null && detail.vendor!.isNotEmpty)
-          Text(
-            detail.vendor!.toUpperCase(),
-            style: textTheme.labelLarge?.copyWith(
-              color: AppColors.textTertiary,
-            ),
+        // Card 1 — title block: vendor, title, rating, price.
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (detail.vendor != null && detail.vendor!.isNotEmpty) ...[
+                Text(
+                  detail.vendor!.toUpperCase(),
+                  style: textTheme.labelLarge?.copyWith(
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+              Text(
+                detail.title,
+                style: textTheme.headlineLarge?.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              if (detail.averageRating != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                RatingStars(
+                  rating: detail.averageRating!,
+                  reviewCount: detail.reviewsCount,
+                ),
+              ],
+              const SizedBox(height: AppSpacing.md),
+              PriceTag(price: displayPrice, compareAtPrice: displayCompareAt),
+            ],
           ),
+        ),
+        // Card 2 — options + quantity selectors.
         const SizedBox(height: AppSpacing.sm),
-        Text(
-          detail.title,
-          style: textTheme.headlineLarge?.copyWith(
-            color: AppColors.textPrimary,
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final option in detail.options) ...[
+                Text(
+                  '${option.name}${_selectedSuffix(option.name)}',
+                  style: textTheme.titleMedium?.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                ProductOptionSelector(
+                  option: option,
+                  selectedValue: selection.selectedOptions[option.name],
+                  onSelected: (value) => onSelectOption(option.name, value),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+              ],
+              Text(
+                'Quantity',
+                style: textTheme.titleMedium?.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              QuantityStepper(
+                quantity: selection.quantity,
+                onIncrement: onIncrementQuantity,
+                onDecrement: onDecrementQuantity,
+              ),
+            ],
           ),
         ),
-        if (detail.averageRating != null) ...[
-          const SizedBox(height: AppSpacing.sm),
-          RatingStars(
-            rating: detail.averageRating!,
-            reviewCount: detail.reviewsCount,
-          ),
-        ],
-        const SizedBox(height: AppSpacing.md),
-        PriceTag(price: displayPrice, compareAtPrice: displayCompareAt),
-        for (final option in detail.options) ...[
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            '${option.name}${_selectedSuffix(option.name)}',
-            style: textTheme.titleMedium?.copyWith(
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          ProductOptionSelector(
-            option: option,
-            selectedValue: selection.selectedOptions[option.name],
-            onSelected: (value) => onSelectOption(option.name, value),
-          ),
-        ],
-        const SizedBox(height: AppSpacing.lg),
-        Text(
-          'Quantity',
-          style: textTheme.titleMedium?.copyWith(color: AppColors.textPrimary),
-        ),
+        // Card 3 — description / reviews / shipping tabs.
         const SizedBox(height: AppSpacing.sm),
-        QuantityStepper(
-          quantity: selection.quantity,
-          onIncrement: onIncrementQuantity,
-          onDecrement: onDecrementQuantity,
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        ProductDetailTabs(
-          description: detail.description ?? '',
-          showReviewsTab: featureFlags.reviewsEnabled,
-          averageRating: detail.averageRating,
-          reviewsCount: detail.reviewsCount,
-          shippingReturnCopy: shippingReturnCopy,
+        _SectionCard(
+          child: ProductDetailTabs(
+            description: detail.description ?? '',
+            showReviewsTab: featureFlags.reviewsEnabled,
+            averageRating: detail.averageRating,
+            reviewsCount: detail.reviewsCount,
+            shippingReturnCopy: shippingReturnCopy,
+          ),
         ),
       ],
     );
@@ -259,6 +326,28 @@ class _ProductInfo extends StatelessWidget {
   String _selectedSuffix(String optionName) {
     final value = selection.selectedOptions[optionName];
     return value == null || value.isEmpty ? '' : ': $value';
+  }
+}
+
+/// White rounded panel floating on the page background, with a gap around it —
+/// the Blinkit-style "card" that groups a section of product detail.
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+      ),
+      child: child,
+    );
   }
 }
 
@@ -271,11 +360,7 @@ class _RelatedProducts extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(productRecommendationsProvider(productId));
     return async.when(
-      data: (products) => RelatedProductsSection(
-        products: products,
-        onProductTap: (Product product) =>
-            context.push(AppRoutes.productDetailPath(product.handle)),
-      ),
+      data: (products) => RelatedProductsSection(products: products),
       loading: () => const LoadingShimmer.row(),
       error: (_, _) => const SizedBox.shrink(),
     );
