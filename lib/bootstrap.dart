@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shopify_app/app.dart';
 import 'package:shopify_app/config/config_repository.dart';
 import 'package:shopify_app/core/storage/address_storage.dart';
+import 'package:shopify_app/core/storage/auth_storage.dart';
 import 'package:shopify_app/core/storage/cart_storage.dart';
 import 'package:shopify_app/core/storage/onboarding_storage.dart';
 import 'package:shopify_app/core/storage/search_history_storage.dart';
@@ -36,6 +37,7 @@ Future<void> bootstrap() async {
         searchHistoryStorageProvider.overrideWithValue(
           SharedPrefsSearchHistoryStorage(prefs),
         ),
+        authStorageProvider.overrideWithValue(const SecureAuthStorage()),
       ],
       child: const App(),
     ),
