@@ -7,6 +7,7 @@ import 'package:shopify_app/core/error/failure.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/features/auth/presentation/providers/auth_providers.dart';
 import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart'
     show PromoOutcome;
 import 'package:shopify_app/features/checkout/presentation/providers/checkout_providers.dart';
@@ -37,8 +38,10 @@ class CheckoutScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final guestAllowed = ref.watch(featureFlagsProvider).guestCheckoutEnabled;
+    final isAuthed = ref.watch(isAuthenticatedProvider);
 
-    if (!guestAllowed) {
+    // Gate only guests when guest checkout is off; signed-in shoppers pass.
+    if (!guestAllowed && !isAuthed) {
       return CustomBackground(
         title: 'Checkout',
         child: EmptyStateView(
@@ -46,8 +49,8 @@ class CheckoutScreen extends ConsumerWidget {
           message:
               'Please sign in to check out.\nGuest checkout is disabled for '
               'this store.',
-          actionLabel: 'Back to cart',
-          onAction: () => context.pop(),
+          actionLabel: 'Sign in',
+          onAction: () => context.push(AppRoutes.login),
         ),
       );
     }

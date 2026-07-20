@@ -109,6 +109,7 @@ class _FakeCheckoutRepository implements CheckoutRepository {
     String cartId, {
     required String email,
     required MailingAddress address,
+    String? customerAccessToken,
   }) async => addressResult ?? Success(_addressAppliedCart);
 
   @override
@@ -181,9 +182,9 @@ void main() {
     test(
       'applyAddress stops on shipping even when a rate is pre-selected',
       () async {
-        // Shopify pre-selects a default rate, so the returned cart already has a
-        // selection — the wizard must still show the shipping step to let the
-        // shopper see/change it, not skip to review.
+        // Shopify pre-selects a default rate, so the returned cart already
+        // has a selection — the wizard must still show the shipping step to
+        // let the shopper see/change it, not skip to review.
         final container = _container(
           repo: _FakeCheckoutRepository(addressResult: Success(_selectedCart)),
         );
