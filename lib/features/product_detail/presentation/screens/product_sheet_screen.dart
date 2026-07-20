@@ -37,8 +37,6 @@ class ProductSheetScreen extends StatefulWidget {
 class _ProductSheetScreenState extends State<ProductSheetScreen> {
   late final PageController _pageController = PageController(
     initialPage: widget.peek.initialIndex,
-    // <1 so the neighbouring cards peek in at the edges.
-    viewportFraction: 0.9,
   );
 
   /// 0 = collapsed carousel, 1 = expanded full page. Driven by the active
@@ -90,8 +88,10 @@ class _ProductSheetScreenState extends State<ProductSheetScreen> {
           child: ValueListenableBuilder<double>(
             valueListenable: _fullness,
             builder: (context, t, _) {
+              // Collapsed = inset card with a scrim gap + rounded corners;
+              // expanded = edge-to-edge full screen.
               final topGap = lerpDouble(AppSpacing.sm, 0, t)!;
-              final sidePad = lerpDouble(AppSpacing.xs, 0, t)!;
+              final sidePad = lerpDouble(AppSpacing.md, 0, t)!;
               final radius = lerpDouble(AppDimensions.radiusLg, 0, t)!;
               return Stack(
                 children: [
@@ -107,14 +107,20 @@ class _ProductSheetScreenState extends State<ProductSheetScreen> {
                       itemBuilder: (context, i) => Padding(
                         padding: EdgeInsets.symmetric(horizontal: sidePad),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(radius),
+                          borderRadius: BorderRadius.all(
+                            Radius.circular(radius),
                           ),
-                          child: ColoredBox(
-                            color: AppColors.background,
-                            child: ProductDetailScreen(
-                              handle: widget.peek.handles[i],
-                              sheetMode: true,
+                          // Strip the top safe-area inset so the image is
+                          // full-bleed to the card top (header floats over it).
+                          child: MediaQuery.removePadding(
+                            context: context,
+                            removeTop: true,
+                            child: ColoredBox(
+                              color: AppColors.background,
+                              child: ProductDetailScreen(
+                                handle: widget.peek.handles[i],
+                                sheetMode: true,
+                              ),
                             ),
                           ),
                         ),
@@ -127,7 +133,8 @@ class _ProductSheetScreenState extends State<ProductSheetScreen> {
                     right: 0,
                     child: _SheetHeader(
                       handle: widget.peek.handles[_currentIndex],
-                      titleOpacity: t,
+                      // Solid background + title fade in as the card expands.
+                      background: t,
                       onClose: _close,
                     ),
                   ),
@@ -146,12 +153,15 @@ class _ProductSheetScreenState extends State<ProductSheetScreen> {
 class _SheetHeader extends ConsumerWidget {
   const _SheetHeader({
     required this.handle,
-    required this.titleOpacity,
+    required this.background,
     required this.onClose,
   });
 
   final String handle;
-  final double titleOpacity;
+
+  /// 0 = transparent header with the buttons floating over the image; 1 =
+  /// solid header with the title, shown once the card is expanded.
+  final double background;
   final VoidCallback onClose;
 
   @override
@@ -161,51 +171,56 @@ class _SheetHeader extends ConsumerWidget {
     final isWishlisted =
         detail != null && ref.watch(isInWishlistProvider(detail.id));
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      child: Row(
-        children: [
-          _CircleButton(icon: Icons.keyboard_arrow_down, onPressed: onClose),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Opacity(
-              opacity: titleOpacity,
-              child: Text(
-                detail?.title ?? '',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
+    return ColoredBox(
+      color: AppColors.surface.withValues(alpha: background),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.md,
+          AppSpacing.sm,
+        ),
+        child: Row(
+          children: [
+            _CircleButton(icon: Icons.keyboard_arrow_down, onPressed: onClose),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Opacity(
+                opacity: background,
+                child: Text(
+                  detail?.title ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
-          ),
-          if (wishlistEnabled)
+            if (wishlistEnabled)
+              _CircleButton(
+                icon: isWishlisted ? Icons.favorite : Icons.favorite_border,
+                iconColor: isWishlisted ? AppColors.error : null,
+                onPressed: detail == null
+                    ? null
+                    : () => ref
+                          .read(wishlistProvider.notifier)
+                          .toggle(_productOf(detail)),
+              ),
+            const SizedBox(width: AppSpacing.sm),
             _CircleButton(
-              icon: isWishlisted ? Icons.favorite : Icons.favorite_border,
-              iconColor: isWishlisted ? AppColors.error : null,
-              onPressed: detail == null
-                  ? null
-                  : () => ref
-                        .read(wishlistProvider.notifier)
-                        .toggle(_productOf(detail)),
+              icon: Icons.search,
+              onPressed: () => context.push(AppRoutes.search),
             ),
-          const SizedBox(width: AppSpacing.sm),
-          _CircleButton(
-            icon: Icons.search,
-            onPressed: () => context.push(AppRoutes.search),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          _CircleButton(
-            icon: Icons.ios_share,
-            onPressed: () =>
-                showAppSnackBar(context, 'Sharing is coming soon.'),
-          ),
-        ],
+            const SizedBox(width: AppSpacing.sm),
+            _CircleButton(
+              icon: Icons.ios_share,
+              onPressed: () =>
+                  showAppSnackBar(context, 'Sharing is coming soon.'),
+            ),
+          ],
+        ),
       ),
     );
   }
