@@ -14,14 +14,15 @@ import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
 import 'package:shopify_app/shopify/models/product.dart';
 import 'package:shopify_app/shopify/models/product_detail.dart';
 
-/// Blinkit-style product presentation: a peeking card over a dark scrim.
+/// Blinkit-style product presentation.
 ///
-/// A product opens as a rounded card below the status bar (scrim shows above
-/// and at the sides, with the neighbouring products peeking in); swiping
-/// horizontally moves between the siblings it was opened with. The card's own
-/// floating buttons (close chevron + wishlist) scroll away with the image, and
-/// a sticky title header fades in as the content scrolls. Each card is a
-/// [ProductDetailScreen].
+/// A product opens as a proper rounded **card** below the status bar (scrim
+/// above, neighbours peeking at the sides). Swiping horizontally moves between
+/// the siblings it was opened with. Scrolling the content up morphs the card
+/// into a **complete full-screen** page (margins, corner radius, and top gap
+/// animate to zero, the viewport goes edge-to-edge, and a sticky title header
+/// fades in); scrolling back to the top restores the card. Each card is a
+/// [ProductDetailScreen] whose own floating buttons scroll away with the image.
 class ProductSheetScreen extends StatefulWidget {
   const ProductSheetScreen({required this.peek, super.key});
 
@@ -32,22 +33,33 @@ class ProductSheetScreen extends StatefulWidget {
 }
 
 class _ProductSheetScreenState extends State<ProductSheetScreen> {
-  late final PageController _pageController = PageController(
-    initialPage: widget.peek.initialIndex,
-    // <1 so the neighbouring cards peek in at the edges.
-    viewportFraction: 0.9,
-  );
+  late PageController _pageController = _makeController(_cardViewport);
 
-  /// 0 = at the top (title in the image), 1 = scrolled (sticky title header
-  /// shown). Drives the header crossfade and the horizontal-swipe lock.
+  /// 0 = at the top, 1 = scrolled — drives the sticky header fade.
   final ValueNotifier<double> _scrolled = ValueNotifier(0);
 
   late int _currentIndex = widget.peek.initialIndex;
 
+  /// `true` once scrolled into complete full-screen mode.
+  bool _full = false;
+
+  /// Peek viewport for the card; full-width once expanded.
+  static const _cardViewport = 0.9;
+
   /// Scroll distance (px) over which the sticky header fades in.
   static const _fadeOver = 120.0;
 
-  bool get _locked => _scrolled.value >= 0.999;
+  /// Enter full-screen past this offset, leave below [_exitFullAt] (hysteresis
+  /// so it doesn't flap at the boundary).
+  static const _enterFullAt = 90.0;
+  static const _exitFullAt = 20.0;
+
+  static const _morph = Duration(milliseconds: 220);
+
+  PageController _makeController(double viewportFraction) => PageController(
+    initialPage: _currentIndex,
+    viewportFraction: viewportFraction,
+  );
 
   @override
   void dispose() {
@@ -62,80 +74,96 @@ class _ProductSheetScreenState extends State<ProductSheetScreen> {
     context.pop();
   }
 
+  void _setFull({required bool full}) {
+    if (full == _full) return;
+    if (full) HapticFeedback.mediumImpact();
+    // Swap the controller so the viewport fraction can change (peek <-> full).
+    final old = _pageController;
+    _pageController = _makeController(full ? 1.0 : _cardViewport);
+    setState(() => _full = full);
+    WidgetsBinding.instance.addPostFrameCallback((_) => old.dispose());
+  }
+
   bool _onScroll(ScrollNotification n) {
-    // Only the card's vertical content scroll drives the header, not the
-    // horizontal PageView.
+    // Only the card's vertical content scroll drives this, not the horizontal
+    // PageView.
     if (n.metrics.axis != Axis.vertical) return false;
-    final wasLocked = _locked;
-    _scrolled.value = (n.metrics.pixels / _fadeOver).clamp(0.0, 1.0);
-    if (_locked != wasLocked) {
-      if (_locked) HapticFeedback.mediumImpact();
-      setState(() {}); // toggle the horizontal-swipe lock
+    final px = n.metrics.pixels;
+    _scrolled.value = (px / _fadeOver).clamp(0.0, 1.0);
+    if (px >= _enterFullAt && !_full) {
+      _setFull(full: true);
+    } else if (px <= _exitFullAt && _full) {
+      _setFull(full: false);
     }
     return false;
   }
 
   @override
   Widget build(BuildContext context) {
+    final topInset = MediaQuery.of(context).padding.top;
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SafeArea(
-        bottom: false,
-        child: NotificationListener<ScrollNotification>(
-          onNotification: _onScroll,
-          child: Stack(
-            children: [
-              PageView.builder(
+      body: NotificationListener<ScrollNotification>(
+        onNotification: _onScroll,
+        child: Stack(
+          children: [
+            // Card sits below the status bar; full-screen covers it.
+            AnimatedPadding(
+              duration: _morph,
+              curve: Curves.easeOut,
+              padding: EdgeInsets.only(top: _full ? 0 : topInset),
+              child: PageView.builder(
                 controller: _pageController,
                 onPageChanged: (i) => setState(() => _currentIndex = i),
-                physics: _locked
+                physics: _full
                     ? const NeverScrollableScrollPhysics()
                     : const PageScrollPhysics(),
                 itemCount: widget.peek.handles.length,
-                itemBuilder: (context, i) => Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xs,
+                itemBuilder: (context, i) => AnimatedContainer(
+                  duration: _morph,
+                  curve: Curves.easeOut,
+                  margin: EdgeInsets.symmetric(
+                    horizontal: _full ? 0 : AppSpacing.xs,
                   ),
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(AppDimensions.radiusLg),
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(
+                      _full ? 0 : AppDimensions.radiusLg,
                     ),
-                    // The card sits below the status bar, so strip the top
-                    // inset — the image is full-bleed to the card top.
-                    child: MediaQuery.removePadding(
-                      context: context,
-                      removeTop: true,
-                      child: ColoredBox(
-                        color: AppColors.background,
-                        child: ProductDetailScreen(
-                          handle: widget.peek.handles[i],
-                          sheetMode: true,
-                        ),
-                      ),
+                  ),
+                  // Strip the top inset so the image is full-bleed to the card
+                  // top (the sticky header adds its own inset when full).
+                  child: MediaQuery.removePadding(
+                    context: context,
+                    removeTop: true,
+                    child: ProductDetailScreen(
+                      handle: widget.peek.handles[i],
+                      sheetMode: true,
                     ),
                   ),
                 ),
               ),
-              // Sticky title header: hidden at the top (the gallery's own
-              // buttons show over the image), fades in as the content scrolls.
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: ValueListenableBuilder<double>(
-                  valueListenable: _scrolled,
-                  builder: (context, t, child) => IgnorePointer(
-                    ignoring: t < 0.5,
-                    child: Opacity(opacity: t, child: child),
-                  ),
-                  child: _StickyHeader(
-                    handle: widget.peek.handles[_currentIndex],
-                    onClose: _close,
-                  ),
+            ),
+            // Sticky title header: hidden at the top (the gallery's own buttons
+            // show over the image), fades in as the content scrolls.
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: ValueListenableBuilder<double>(
+                valueListenable: _scrolled,
+                builder: (context, t, child) => IgnorePointer(
+                  ignoring: t < 0.5,
+                  child: Opacity(opacity: t, child: child),
+                ),
+                child: _StickyHeader(
+                  handle: widget.peek.handles[_currentIndex],
+                  onClose: _close,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -160,48 +188,54 @@ class _StickyHeader extends ConsumerWidget {
     return Material(
       color: AppColors.surface,
       elevation: AppSpacing.xs / 2,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
-        ),
-        child: Row(
-          children: [
-            _CircleButton(icon: Icons.keyboard_arrow_down, onPressed: onClose),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(
-                detail?.title ?? '',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          child: Row(
+            children: [
+              _CircleButton(
+                icon: Icons.keyboard_arrow_down,
+                onPressed: onClose,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  detail?.title ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-            ),
-            if (wishlistEnabled)
+              if (wishlistEnabled)
+                _CircleButton(
+                  icon: isWishlisted ? Icons.favorite : Icons.favorite_border,
+                  iconColor: isWishlisted ? AppColors.error : null,
+                  onPressed: detail == null
+                      ? null
+                      : () => ref
+                            .read(wishlistProvider.notifier)
+                            .toggle(_productOf(detail)),
+                ),
+              const SizedBox(width: AppSpacing.sm),
               _CircleButton(
-                icon: isWishlisted ? Icons.favorite : Icons.favorite_border,
-                iconColor: isWishlisted ? AppColors.error : null,
-                onPressed: detail == null
-                    ? null
-                    : () => ref
-                          .read(wishlistProvider.notifier)
-                          .toggle(_productOf(detail)),
+                icon: Icons.search,
+                onPressed: () => context.push(AppRoutes.search),
               ),
-            const SizedBox(width: AppSpacing.sm),
-            _CircleButton(
-              icon: Icons.search,
-              onPressed: () => context.push(AppRoutes.search),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            _CircleButton(
-              icon: Icons.ios_share,
-              onPressed: () =>
-                  showAppSnackBar(context, 'Sharing is coming soon.'),
-            ),
-          ],
+              const SizedBox(width: AppSpacing.sm),
+              _CircleButton(
+                icon: Icons.ios_share,
+                onPressed: () =>
+                    showAppSnackBar(context, 'Sharing is coming soon.'),
+              ),
+            ],
+          ),
         ),
       ),
     );
