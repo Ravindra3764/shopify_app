@@ -41,10 +41,7 @@ class SecureAuthStorage implements AuthStorage {
   @override
   Future<void> write(String token, DateTime expiresAt) async {
     await _storage.write(key: _tokenKey, value: token);
-    await _storage.write(
-      key: _expiryKey,
-      value: expiresAt.toIso8601String(),
-    );
+    await _storage.write(key: _expiryKey, value: expiresAt.toIso8601String());
   }
 
   @override
