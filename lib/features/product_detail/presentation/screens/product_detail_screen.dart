@@ -147,22 +147,20 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
                             .toggle(_asProduct)
                       : null,
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: _ProductInfo(
-                    detail: detail,
-                    variant: variant,
-                    selection: selection,
-                    featureFlags: featureFlags,
-                    shippingReturnCopy: shippingReturnCopy ?? '',
-                    onSelectOption: selectionNotifier.selectOption,
-                    onIncrementQuantity: canIncreaseQty
-                        ? selectionNotifier.incrementQuantity
-                        : null,
-                    onDecrementQuantity: selection.quantity > 1
-                        ? selectionNotifier.decrementQuantity
-                        : null,
-                  ),
+                const SizedBox(height: AppSpacing.sm),
+                _ProductInfo(
+                  detail: detail,
+                  variant: variant,
+                  selection: selection,
+                  featureFlags: featureFlags,
+                  shippingReturnCopy: shippingReturnCopy ?? '',
+                  onSelectOption: selectionNotifier.selectOption,
+                  onIncrementQuantity: canIncreaseQty
+                      ? selectionNotifier.incrementQuantity
+                      : null,
+                  onDecrementQuantity: selection.quantity > 1
+                      ? selectionNotifier.decrementQuantity
+                      : null,
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 _RelatedProducts(productId: detail.id),
@@ -212,62 +210,84 @@ class _ProductInfo extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (detail.vendor != null && detail.vendor!.isNotEmpty)
-          Text(
-            detail.vendor!.toUpperCase(),
-            style: textTheme.labelLarge?.copyWith(
-              color: AppColors.textTertiary,
-            ),
+        // Card 1 — title block: vendor, title, rating, price.
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (detail.vendor != null && detail.vendor!.isNotEmpty) ...[
+                Text(
+                  detail.vendor!.toUpperCase(),
+                  style: textTheme.labelLarge?.copyWith(
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+              Text(
+                detail.title,
+                style: textTheme.headlineLarge?.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              if (detail.averageRating != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                RatingStars(
+                  rating: detail.averageRating!,
+                  reviewCount: detail.reviewsCount,
+                ),
+              ],
+              const SizedBox(height: AppSpacing.md),
+              PriceTag(price: displayPrice, compareAtPrice: displayCompareAt),
+            ],
           ),
+        ),
+        // Card 2 — options + quantity selectors.
         const SizedBox(height: AppSpacing.sm),
-        Text(
-          detail.title,
-          style: textTheme.headlineLarge?.copyWith(
-            color: AppColors.textPrimary,
+        _SectionCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final option in detail.options) ...[
+                Text(
+                  '${option.name}${_selectedSuffix(option.name)}',
+                  style: textTheme.titleMedium?.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                ProductOptionSelector(
+                  option: option,
+                  selectedValue: selection.selectedOptions[option.name],
+                  onSelected: (value) => onSelectOption(option.name, value),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+              ],
+              Text(
+                'Quantity',
+                style: textTheme.titleMedium?.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              QuantityStepper(
+                quantity: selection.quantity,
+                onIncrement: onIncrementQuantity,
+                onDecrement: onDecrementQuantity,
+              ),
+            ],
           ),
         ),
-        if (detail.averageRating != null) ...[
-          const SizedBox(height: AppSpacing.sm),
-          RatingStars(
-            rating: detail.averageRating!,
-            reviewCount: detail.reviewsCount,
-          ),
-        ],
-        const SizedBox(height: AppSpacing.md),
-        PriceTag(price: displayPrice, compareAtPrice: displayCompareAt),
-        for (final option in detail.options) ...[
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            '${option.name}${_selectedSuffix(option.name)}',
-            style: textTheme.titleMedium?.copyWith(
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          ProductOptionSelector(
-            option: option,
-            selectedValue: selection.selectedOptions[option.name],
-            onSelected: (value) => onSelectOption(option.name, value),
-          ),
-        ],
-        const SizedBox(height: AppSpacing.lg),
-        Text(
-          'Quantity',
-          style: textTheme.titleMedium?.copyWith(color: AppColors.textPrimary),
-        ),
+        // Card 3 — description / reviews / shipping tabs.
         const SizedBox(height: AppSpacing.sm),
-        QuantityStepper(
-          quantity: selection.quantity,
-          onIncrement: onIncrementQuantity,
-          onDecrement: onDecrementQuantity,
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        ProductDetailTabs(
-          description: detail.description ?? '',
-          showReviewsTab: featureFlags.reviewsEnabled,
-          averageRating: detail.averageRating,
-          reviewsCount: detail.reviewsCount,
-          shippingReturnCopy: shippingReturnCopy,
+        _SectionCard(
+          child: ProductDetailTabs(
+            description: detail.description ?? '',
+            showReviewsTab: featureFlags.reviewsEnabled,
+            averageRating: detail.averageRating,
+            reviewsCount: detail.reviewsCount,
+            shippingReturnCopy: shippingReturnCopy,
+          ),
         ),
       ],
     );
@@ -276,6 +296,28 @@ class _ProductInfo extends StatelessWidget {
   String _selectedSuffix(String optionName) {
     final value = selection.selectedOptions[optionName];
     return value == null || value.isEmpty ? '' : ': $value';
+  }
+}
+
+/// White rounded panel floating on the page background, with a gap around it —
+/// the Blinkit-style "card" that groups a section of product detail.
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+      ),
+      child: child,
+    );
   }
 }
 

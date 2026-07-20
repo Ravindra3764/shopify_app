@@ -36,8 +36,13 @@ class ProductSheetScreen extends StatefulWidget {
 }
 
 class _ProductSheetScreenState extends State<ProductSheetScreen> {
-  late final PageController _pageController = PageController(
+  /// Viewport fraction at card state so the sibling cards peek at both edges;
+  /// snaps to 1.0 (full bleed) once expanded to full screen.
+  static const double _peekFraction = 0.92;
+
+  late PageController _pageController = PageController(
     initialPage: widget.peek.initialIndex,
+    viewportFraction: _peekFraction,
   );
 
   /// 0 = card (below the status bar), 1 = full screen. Driven continuously by
@@ -73,6 +78,15 @@ class _ProductSheetScreenState extends State<ProductSheetScreen> {
     final full = _fullness.value >= 0.999;
     if (full != _full) {
       if (full) HapticFeedback.mediumImpact();
+      // Swap the controller so the peek gap closes to full bleed when expanded
+      // and reopens when collapsed. viewportFraction is final, so recreate it —
+      // the horizontal swipe is idle here (a vertical scroll), so it's safe.
+      final page = _currentIndex;
+      _pageController.dispose();
+      _pageController = PageController(
+        initialPage: page,
+        viewportFraction: full ? 1.0 : _peekFraction,
+      );
       setState(() => _full = full); // toggle the horizontal-swipe lock
     }
     return false;
@@ -122,6 +136,11 @@ class _ProductSheetScreenState extends State<ProductSheetScreen> {
               child: _PinnedActions(
                 handle: widget.peek.handles[_currentIndex],
                 onClose: _close,
+                fullness: _fullness,
+                // Blank strip the PageView leaves at each edge from the peek
+                // viewport — the card's outer edge sits here at peek state.
+                peekEdge:
+                    (1 - _peekFraction) / 2 * MediaQuery.of(context).size.width,
               ),
             ),
           ],
@@ -145,8 +164,12 @@ class _MorphCard extends StatelessWidget {
       valueListenable: fullness,
       child: child,
       builder: (context, t, child) => Container(
-        margin: EdgeInsets.symmetric(
-          horizontal: lerpDouble(AppSpacing.sm, 0, t)!,
+        // Float the card off every edge at peek (bottom included, so the
+        // sticky action bar sits inside the rounded card); flush when full.
+        margin: EdgeInsets.only(
+          left: lerpDouble(AppSpacing.sm, 0, t)!,
+          right: lerpDouble(AppSpacing.sm, 0, t)!,
+          bottom: lerpDouble(AppSpacing.sm, 0, t)!,
         ),
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
@@ -164,10 +187,19 @@ class _MorphCard extends StatelessWidget {
 /// Buttons pinned over the card top: close chevron on the left, wishlist /
 /// search / share on the right, for the active product.
 class _PinnedActions extends ConsumerWidget {
-  const _PinnedActions({required this.handle, required this.onClose});
+  const _PinnedActions({
+    required this.handle,
+    required this.onClose,
+    required this.fullness,
+    required this.peekEdge,
+  });
 
   final String handle;
   final VoidCallback onClose;
+  final ValueNotifier<double> fullness;
+
+  /// Width of the blank peek strip on each side of the card at peek state.
+  final double peekEdge;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -178,11 +210,23 @@ class _PinnedActions extends ConsumerWidget {
 
     return SafeArea(
       bottom: false,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
-        ),
+      child: ValueListenableBuilder<double>(
+        valueListenable: fullness,
+        builder: (context, t, child) {
+          // Keep the buttons inset from the card's outer edge by AppSpacing.md,
+          // so they track the card as it morphs from peek to full bleed.
+          final cardEdge =
+              (t >= 0.999 ? 0.0 : peekEdge) + lerpDouble(AppSpacing.sm, 0, t)!;
+          return Padding(
+            padding: EdgeInsets.only(
+              left: cardEdge + AppSpacing.md,
+              right: cardEdge + AppSpacing.md,
+              top: AppSpacing.sm,
+              bottom: AppSpacing.sm,
+            ),
+            child: child,
+          );
+        },
         child: Row(
           children: [
             _CircleButton(icon: Icons.keyboard_arrow_down, onPressed: onClose),
