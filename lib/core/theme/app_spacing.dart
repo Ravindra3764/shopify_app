@@ -68,6 +68,12 @@ abstract final class AppDimensions {
   /// Line-height multiplier for long-form body copy (policies, content pages).
   static const double bodyLineHeight = 1.5;
 
+  /// Distance from the end of a scroll view at which to prefetch the next page.
+  static const double loadMoreThreshold = 400;
+
+  /// Opacity for a tinted status-chip fill over its accent color.
+  static const double chipFillAlpha = 0.12;
+
   /// Sizes for the cart screen.
   static const double cartThumbSize = 96;
   static const double cartSummaryShimmerHeight = 180;

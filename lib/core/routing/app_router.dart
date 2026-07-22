@@ -12,6 +12,8 @@ import 'package:shopify_app/features/checkout/presentation/screens/checkout_paym
 import 'package:shopify_app/features/checkout/presentation/screens/checkout_screen.dart';
 import 'package:shopify_app/features/checkout/presentation/screens/order_confirmed_screen.dart';
 import 'package:shopify_app/features/home/presentation/screens/home_screen.dart';
+import 'package:shopify_app/features/orders/presentation/screens/order_detail_screen.dart';
+import 'package:shopify_app/features/orders/presentation/screens/orders_screen.dart';
 import 'package:shopify_app/features/product_detail/domain/product_peek_args.dart';
 import 'package:shopify_app/features/product_detail/presentation/screens/product_detail_screen.dart';
 import 'package:shopify_app/features/product_detail/presentation/screens/product_sheet_screen.dart';
@@ -23,6 +25,7 @@ import 'package:shopify_app/features/profile/presentation/screens/profile_screen
 import 'package:shopify_app/features/search/presentation/screens/search_screen.dart';
 import 'package:shopify_app/features/splash/presentation/screens/splash_screen.dart';
 import 'package:shopify_app/features/wishlist/presentation/screens/wishlist_screen.dart';
+import 'package:shopify_app/shopify/models/order.dart';
 
 /// Builds the app's [GoRouter].
 ///
@@ -141,6 +144,21 @@ GoRouter createRouter({bool sheetProductDetail = false}) {
               ? state.extra! as ProfileContent
               : ProfileContent.privacyPolicy,
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.orders,
+        builder: (context, state) => const OrdersScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.orderDetail,
+        builder: (context, state) {
+          // The order to show is passed as typed `extra` from the list; a
+          // deep link without it falls back to the order history.
+          final order = state.extra;
+          return order is Order
+              ? OrderDetailScreen(order: order)
+              : const OrdersScreen();
+        },
       ),
       GoRoute(
         path: AppRoutes.wishlist,

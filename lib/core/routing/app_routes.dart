@@ -31,6 +31,12 @@ abstract final class AppRoutes {
   /// entry to show is passed as typed `extra`.
   static const String content = '/content';
 
+  /// Order-history list (pushed full-screen; requires sign-in).
+  static const String orders = '/orders';
+
+  /// Order-detail view; the `Order` to show is passed as typed `extra`.
+  static const String orderDetail = '/orders/detail';
+
   /// Wishlist route (pushed full-screen; gated by the wishlist feature flag).
   static const String wishlist = '/wishlist';
 

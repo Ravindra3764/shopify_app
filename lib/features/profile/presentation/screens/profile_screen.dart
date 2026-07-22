@@ -8,7 +8,6 @@ import 'package:shopify_app/features/auth/presentation/providers/auth_providers.
 import 'package:shopify_app/features/profile/domain/profile_content.dart';
 import 'package:shopify_app/features/profile/presentation/providers/content_providers.dart';
 import 'package:shopify_app/providers/config_providers.dart';
-import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
 import 'package:shopify_app/shared/widgets/confirm_dialog.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
@@ -53,8 +52,6 @@ class ProfileScreen extends ConsumerWidget {
       }
     }
 
-    void comingSoon(String what) => showAppSnackBar(context, '$what soon.');
-
     /// Opens a static store-content page (privacy, terms, about, help).
     void openContent(ProfileContent content) =>
         context.push(AppRoutes.content, extra: content);
@@ -78,7 +75,7 @@ class ProfileScreen extends ConsumerWidget {
           _ProfileTile(
             icon: Icons.receipt_long_outlined,
             label: 'My orders',
-            onTap: () => gated(() => comingSoon('Orders are coming')),
+            onTap: () => gated(() => context.push(AppRoutes.orders)),
           ),
           _ProfileTile(
             icon: Icons.location_on_outlined,
