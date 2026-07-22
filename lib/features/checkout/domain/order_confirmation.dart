@@ -17,6 +17,7 @@ class OrderConfirmation {
     this.address,
     this.shipping,
     this.tax,
+    this.orderName,
   });
 
   final List<CartLine> lines;
@@ -27,6 +28,25 @@ class OrderConfirmation {
   final Money? shipping;
   final Money? tax;
 
+  /// The verified Shopify order name (e.g. `#1002`) when the order was
+  /// confirmed server-side by polling `customer.orders`, or `null` when the
+  /// confirmation is the cart snapshot alone (e.g. a guest checkout).
+  final String? orderName;
+
+  /// Whether this confirmation was verified against a real placed order.
+  bool get isVerified => orderName != null;
+
   /// Total number of items ordered.
   int get itemCount => lines.fold(0, (sum, l) => sum + l.quantity);
+
+  OrderConfirmation copyWith({String? orderName}) => OrderConfirmation(
+    lines: lines,
+    subtotal: subtotal,
+    total: total,
+    email: email,
+    address: address,
+    shipping: shipping,
+    tax: tax,
+    orderName: orderName ?? this.orderName,
+  );
 }
