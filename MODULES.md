@@ -3,7 +3,7 @@
 Living tracker for every feature module. Update the **Status** and **Progress**
 columns as work lands. Legend: ✅ done · 🟡 partial · 🔲 not started.
 
-_Last updated: 2026-07-22 (Orders module landed on `feature/orders-module`)_
+_Last updated: 2026-07-22 (Checkout verification landed on `checkout-module`)_
 
 ---
 
@@ -17,7 +17,7 @@ _Last updated: 2026-07-22 (Orders module landed on `feature/orders-module`)_
 | Product Detail | ✅ / ✅ / ✅ | ✅ | 100% |
 | Product Detail Sheet | ✅ / ✅ / ✅ | ✅ | 100% (flag OFF) |
 | Cart | ✅ / ✅ / ✅ | ✅ | 100% |
-| Checkout | ✅ / ✅ / ✅ | 🟡 | 90% |
+| Checkout | ✅ / ✅ / ✅ | ✅ | 100% |
 | Search | ✅ / ✅ / ✅ | ✅ | 100% |
 | Wishlist | ✅ storage / ✅ / ✅ | ✅ | 100% (local-only) |
 | Auth | ✅ / ✅ / ✅ | ✅ | 100% |
@@ -59,10 +59,14 @@ Product search with query + results. Repo + provider + screen.
 
 ## Partial modules
 
-### 🟡 Checkout — 90%
+### ✅ Checkout — 100%
 Cart → checkout URL, in-app webview, promo codes, address book flags wired.
-**Pending:** order verification after payment — deferred until customer auth
-lands (need `customerAccessToken` + poll `customer.orders`).
+Post-payment **order verification** now closed: `OrderVerifier` snapshots the
+customer's newest order id before payment, then polls `customer.orders` after
+the thank-you redirect until a new order appears (id comparison, clock-skew
+proof). The real order name is stamped on the confirmation + shown on the
+confirmed screen, behind a "Confirming your order…" overlay. Guests keep the
+cart-snapshot confirmation. Tests: `OrderVerifier` polling + edge cases.
 
 ### ✅ Wishlist — 100% (local-only)
 Persistence (`WishlistStorage` over `SharedPreferences`) + providers +
@@ -117,6 +121,6 @@ Missing. `REVIEWS_ENABLED=false`. Product tabs show placeholder only.
 1. ~~**Auth**~~ ✅ done — unblocked the rest.
 2. ~~**Profile**~~ ✅ done — policies live, My-orders link wired.
 3. ~~**Orders**~~ ✅ done — `customer.orders` list + detail.
-4. **Checkout verification** (next) — close the 10% gap now that the Auth
-   token + `customer.orders` polling exist.
-5. **Reviews** — needs data-source decision (metafields vs 3rd-party).
+4. ~~**Checkout verification**~~ ✅ done — polls `customer.orders` post-payment.
+5. **Reviews** (next / last) — needs data-source decision (metafields vs
+   3rd-party) before build.
