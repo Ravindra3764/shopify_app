@@ -3,7 +3,7 @@
 Living tracker for every feature module. Update the **Status** and **Progress**
 columns as work lands. Legend: ✅ done · 🟡 partial · 🔲 not started.
 
-_Last updated: 2026-07-20 (Auth module landed on `feature/auth-module`)_
+_Last updated: 2026-07-22 (Orders module landed on `feature/orders-module`)_
 
 ---
 
@@ -21,8 +21,8 @@ _Last updated: 2026-07-20 (Auth module landed on `feature/auth-module`)_
 | Search | ✅ / ✅ / ✅ | ✅ | 100% |
 | Wishlist | ✅ storage / ✅ / ✅ | ✅ | 100% (local-only) |
 | Auth | ✅ / ✅ / ✅ | ✅ | 100% |
-| Orders | 🔲 / 🔲 / 🔲 | 🔲 | 0% |
-| Profile | ✅ / ✅ / ✅ | ✅ | 95% |
+| Orders | ✅ / ✅ / ✅ | ✅ | 100% |
+| Profile | ✅ / ✅ / ✅ | ✅ | 100% |
 | Reviews | 🔲 / 🔲 / 🔲 | 🔲 | 0% |
 
 ---
@@ -85,22 +85,25 @@ logout / silent session restore on launch / forgot-password. Token in
   now has a working sign-in button.
 - Tests: repo mapping, notifier transitions, login-screen widget (17 tests).
 
-### ✅ Profile — 95%
+### ✅ Profile — 100%
 Real account view: identity header, quick links (Orders/Wishlist/Addresses),
-sign-out; sign-in prompt when logged out. **More** section now live: Privacy
-policy, Terms & conditions (Settings → Policies), plus optional About us /
-Help & support (Online Store → Pages, per-tenant `ABOUT_PAGE_HANDLE` /
-`HELP_PAGE_HANDLE`; tile hidden when unset). Content fetched via
-`ContentRepository` → `ContentPageScreen` (HTML flattened to plain text).
-**Pending:** Orders link is a placeholder (snackbar) until the Orders module
-lands.
+sign-out; sign-in prompt when logged out. **My orders** now routes to the
+Orders module. **More** section live: every configured store policy
+(auto-detected from Settings → Policies — privacy, terms, refund, shipping,
+subscription), plus optional About us / Help & support (Online Store → Pages,
+per-tenant `ABOUT_PAGE_HANDLE` / `HELP_PAGE_HANDLE`; tile hidden when unset).
+Content fetched via `ContentRepository` → `ContentPageScreen` (HTML flattened
+to plain text).
 
 ## Pending modules
 
-### 🔲 Orders — 0% (NEXT — now unblocked by Auth)
-Missing. Uses the auth token.
-- Query `customer.orders` list + order detail.
-- Repo + provider + list/detail screens; wire the Profile "My orders" link.
+### ✅ Orders — 100%
+Signed-in order history via `customer.orders` (buyer token). Paginated list
+(infinite scroll) + detail (lines, price breakdown, shipping address,
+humanized fulfillment/financial status). Repo + `OrdersNotifier`
+(AsyncNotifier, loadMore) + list/detail screens + routes; Profile "My orders"
+link now routes here (gated to sign-in). Tests: repo mapping + notifier.
+Detail renders from the loaded `Order` (no second fetch).
 
 ### 🔲 Reviews — 0%
 Missing. `REVIEWS_ENABLED=false`. Product tabs show placeholder only.
@@ -112,7 +115,8 @@ Missing. `REVIEWS_ENABLED=false`. Product tabs show placeholder only.
 ## Recommended build order
 
 1. ~~**Auth**~~ ✅ done — unblocked the rest.
-2. ~~**Profile**~~ ✅ done (links pending their modules).
-3. **Orders** — needs Auth token (next).
-4. **Checkout verification** — close the 10% gap now that the Auth token exists.
+2. ~~**Profile**~~ ✅ done — policies live, My-orders link wired.
+3. ~~**Orders**~~ ✅ done — `customer.orders` list + detail.
+4. **Checkout verification** (next) — close the 10% gap now that the Auth
+   token + `customer.orders` polling exist.
 5. **Reviews** — needs data-source decision (metafields vs 3rd-party).
