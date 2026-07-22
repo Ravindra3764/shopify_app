@@ -65,6 +65,9 @@ abstract final class AppDimensions {
   /// the floating nav bar instead of sitting behind it.
   static const double floatingNavClearance = floatingNavHeight + AppSpacing.xl;
 
+  /// Line-height multiplier for long-form body copy (policies, content pages).
+  static const double bodyLineHeight = 1.5;
+
   /// Sizes for the cart screen.
   static const double cartThumbSize = 96;
   static const double cartSummaryShimmerHeight = 180;

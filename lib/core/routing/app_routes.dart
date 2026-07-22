@@ -27,6 +27,10 @@ abstract final class AppRoutes {
   /// Saved-addresses management (shared with checkout's address book).
   static const String addresses = '/addresses';
 
+  /// Static store content viewer (Profile → More). The `ProfileContent`
+  /// entry to show is passed as typed `extra`.
+  static const String content = '/content';
+
   /// Wishlist route (pushed full-screen; gated by the wishlist feature flag).
   static const String wishlist = '/wishlist';
 

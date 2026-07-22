@@ -16,7 +16,9 @@ import 'package:shopify_app/features/product_detail/domain/product_peek_args.dar
 import 'package:shopify_app/features/product_detail/presentation/screens/product_detail_screen.dart';
 import 'package:shopify_app/features/product_detail/presentation/screens/product_sheet_screen.dart';
 import 'package:shopify_app/features/product_listing/presentation/screens/collection_screen.dart';
+import 'package:shopify_app/features/profile/domain/profile_content.dart';
 import 'package:shopify_app/features/profile/presentation/screens/addresses_screen.dart';
+import 'package:shopify_app/features/profile/presentation/screens/content_page_screen.dart';
 import 'package:shopify_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:shopify_app/features/search/presentation/screens/search_screen.dart';
 import 'package:shopify_app/features/splash/presentation/screens/splash_screen.dart';
@@ -129,6 +131,16 @@ GoRouter createRouter({bool sheetProductDetail = false}) {
       GoRoute(
         path: AppRoutes.addresses,
         builder: (context, state) => const AddressesScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.content,
+        builder: (context, state) => ContentPageScreen(
+          // The entry to display is passed as typed `extra`; default to the
+          // privacy policy for an unexpected/deep-link hit.
+          content: state.extra is ProfileContent
+              ? state.extra! as ProfileContent
+              : ProfileContent.privacyPolicy,
+        ),
       ),
       GoRoute(
         path: AppRoutes.wishlist,

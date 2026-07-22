@@ -5,6 +5,7 @@ import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/auth/presentation/providers/auth_providers.dart';
+import 'package:shopify_app/features/profile/domain/profile_content.dart';
 import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
 import 'package:shopify_app/shared/widgets/confirm_dialog.dart';
@@ -35,7 +36,8 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final customer = ref.watch(currentCustomerProvider);
     final isAuthed = customer != null;
-    final wishlistEnabled = ref.watch(featureFlagsProvider).wishlistEnabled;
+    final config = ref.watch(appConfigProvider);
+    final wishlistEnabled = config.features.wishlistEnabled;
 
     /// Runs [action] when signed in, otherwise routes the guest to sign-in.
     void gated(VoidCallback action) {
@@ -47,6 +49,10 @@ class ProfileScreen extends ConsumerWidget {
     }
 
     void comingSoon(String what) => showAppSnackBar(context, '$what soon.');
+
+    /// Opens a static store-content page (privacy, terms, about, help).
+    void openContent(ProfileContent content) =>
+        context.push(AppRoutes.content, extra: content);
 
     return CustomBackground(
       showBackButton: false,
@@ -84,24 +90,28 @@ class ProfileScreen extends ConsumerWidget {
           const _SectionLabel('More'),
           _ProfileTile(
             icon: Icons.privacy_tip_outlined,
-            label: 'Privacy policy',
-            onTap: () => comingSoon('Privacy policy is coming'),
+            label: ProfileContent.privacyPolicy.title,
+            onTap: () => openContent(ProfileContent.privacyPolicy),
           ),
           _ProfileTile(
             icon: Icons.description_outlined,
-            label: 'Terms & conditions',
-            onTap: () => comingSoon('Terms are coming'),
+            label: ProfileContent.terms.title,
+            onTap: () => openContent(ProfileContent.terms),
           ),
-          _ProfileTile(
-            icon: Icons.info_outline,
-            label: 'About us',
-            onTap: () => comingSoon('About is coming'),
-          ),
-          _ProfileTile(
-            icon: Icons.help_outline,
-            label: 'Help & support',
-            onTap: () => comingSoon('Support is coming'),
-          ),
+          // About / Help pages are optional per tenant — shown only when a
+          // page handle is configured.
+          if (config.aboutPageHandle != null)
+            _ProfileTile(
+              icon: Icons.info_outline,
+              label: ProfileContent.about.title,
+              onTap: () => openContent(ProfileContent.about),
+            ),
+          if (config.helpPageHandle != null)
+            _ProfileTile(
+              icon: Icons.help_outline,
+              label: ProfileContent.help.title,
+              onTap: () => openContent(ProfileContent.help),
+            ),
           if (isAuthed) ...[
             const SizedBox(height: AppSpacing.xl),
             CustomButton.outline(

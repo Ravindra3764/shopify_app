@@ -22,7 +22,7 @@ _Last updated: 2026-07-20 (Auth module landed on `feature/auth-module`)_
 | Wishlist | ✅ storage / ✅ / ✅ | ✅ | 100% (local-only) |
 | Auth | ✅ / ✅ / ✅ | ✅ | 100% |
 | Orders | 🔲 / 🔲 / 🔲 | 🔲 | 0% |
-| Profile | — / ✅ / ✅ | ✅ | 90% |
+| Profile | ✅ / ✅ / ✅ | ✅ | 95% |
 | Reviews | 🔲 / 🔲 / 🔲 | 🔲 | 0% |
 
 ---
@@ -85,10 +85,15 @@ logout / silent session restore on launch / forgot-password. Token in
   now has a working sign-in button.
 - Tests: repo mapping, notifier transitions, login-screen widget (17 tests).
 
-### ✅ Profile — 90%
+### ✅ Profile — 95%
 Real account view: identity header, quick links (Orders/Wishlist/Addresses),
-sign-out; sign-in prompt when logged out. **Pending:** Orders + Addresses links
-are placeholders (snackbar) until those modules exist.
+sign-out; sign-in prompt when logged out. **More** section now live: Privacy
+policy, Terms & conditions (Settings → Policies), plus optional About us /
+Help & support (Online Store → Pages, per-tenant `ABOUT_PAGE_HANDLE` /
+`HELP_PAGE_HANDLE`; tile hidden when unset). Content fetched via
+`ContentRepository` → `ContentPageScreen` (HTML flattened to plain text).
+**Pending:** Orders link is a placeholder (snackbar) until the Orders module
+lands.
 
 ## Pending modules
 
