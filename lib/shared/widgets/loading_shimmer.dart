@@ -31,6 +31,9 @@ class LoadingShimmer extends StatelessWidget {
   /// mirrors a policy / about / help page.
   const LoadingShimmer.article({Key? key}) : this._(_articleLayout, key: key);
 
+  /// Order-history skeleton: a stack of order-summary card placeholders.
+  const LoadingShimmer.orders({Key? key}) : this._(_ordersLayout, key: key);
+
   final Widget Function(BuildContext) _builder;
 
   @override
@@ -207,6 +210,54 @@ class LoadingShimmer extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
         ],
       ],
+    );
+  }
+
+  static Widget _ordersLayout(BuildContext context) {
+    return ListView.separated(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      itemCount: 5,
+      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
+      itemBuilder: (_, _) => Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _Box(
+                  height: AppSpacing.md,
+                  width: AppDimensions.shimmerShortWidth,
+                  radius: AppDimensions.radiusSm,
+                ),
+                _Box(
+                  height: AppSpacing.md,
+                  width: AppDimensions.swatchSize,
+                  radius: AppDimensions.radiusSm,
+                ),
+              ],
+            ),
+            SizedBox(height: AppSpacing.md),
+            _Box(
+              height: AppSpacing.sm,
+              width: AppDimensions.shimmerTitleWidth,
+              radius: AppDimensions.radiusSm,
+            ),
+            SizedBox(height: AppSpacing.sm),
+            _Box(
+              height: AppSpacing.sm,
+              width: AppDimensions.shimmerShortWidth,
+              radius: AppDimensions.radiusSm,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
