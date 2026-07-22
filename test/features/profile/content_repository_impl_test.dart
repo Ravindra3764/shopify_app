@@ -28,35 +28,63 @@ void main() {
     ).thenThrow(e);
   }
 
-  group('getPrivacyPolicy', () {
+  group('getAvailablePolicyFields', () {
+    test('includes only policies whose body has real text', () async {
+      stub({
+        'shop': {
+          'privacyPolicy': {'body': '<p>We respect your data.</p>'},
+          'termsOfService': {'body': '<p>Use fairly.</p>'},
+          'refundPolicy': {'body': '<p>30 days.</p>'},
+          // Blank policies: empty tags / null node → excluded.
+          'shippingPolicy': {'body': '<p></p>'},
+          'subscriptionPolicy': null,
+        },
+      });
+
+      final result = await repo.getAvailablePolicyFields();
+
+      final fields = result.fold((f) => f, (_) => <String>{});
+      expect(fields, {'privacyPolicy', 'termsOfService', 'refundPolicy'});
+    });
+
+    test('maps a ShopifyException to a Failure', () async {
+      stubThrows(const ShopifyException('network down'));
+
+      final result = await repo.getAvailablePolicyFields();
+
+      expect(result.fold((_) => null, (f) => f), isA<Failure>());
+    });
+  });
+
+  group('getPolicy', () {
     test('maps a policy node to a page with flattened body', () async {
       stub({
         'shop': {
-          'privacyPolicy': {
-            'title': 'Privacy Policy',
-            'body': '<p>We respect your data.</p><p>Contact &amp; us.</p>',
-            'url': 'https://acme.example/policies/privacy-policy',
+          'refundPolicy': {
+            'title': 'Return & Refund Policy',
+            'body': '<p>Return within 30 days.</p><p>Contact &amp; us.</p>',
+            'url': 'https://acme.example/policies/refund-policy',
           },
         },
       });
 
-      final result = await repo.getPrivacyPolicy();
+      final result = await repo.getPolicy('refundPolicy');
 
       final page = result.fold((p) => p, (_) => null);
       expect(page, isNotNull);
-      expect(page!.title, 'Privacy Policy');
+      expect(page!.title, 'Return & Refund Policy');
       expect(page.hasContent, isTrue);
       // Block tags become paragraph breaks; entities are decoded.
-      expect(page.body, 'We respect your data.\n\nContact & us.');
-      expect(page.url, 'https://acme.example/policies/privacy-policy');
+      expect(page.body, 'Return within 30 days.\n\nContact & us.');
+      expect(page.url, 'https://acme.example/policies/refund-policy');
     });
 
     test('maps an unset policy (null node) to an empty-body page', () async {
       stub({
-        'shop': {'privacyPolicy': null},
+        'shop': {'shippingPolicy': null},
       });
 
-      final result = await repo.getPrivacyPolicy();
+      final result = await repo.getPolicy('shippingPolicy');
 
       final page = result.fold((p) => p, (_) => null);
       expect(page, isNotNull);
@@ -67,30 +95,9 @@ void main() {
     test('maps a ShopifyException to a Failure', () async {
       stubThrows(const ShopifyException('network down'));
 
-      final result = await repo.getPrivacyPolicy();
+      final result = await repo.getPolicy('privacyPolicy');
 
-      final failure = result.fold((_) => null, (f) => f);
-      expect(failure, isA<Failure>());
-    });
-  });
-
-  group('getTermsOfService', () {
-    test('reads the termsOfService field', () async {
-      stub({
-        'shop': {
-          'termsOfService': {
-            'title': 'Terms of Service',
-            'body': '<p>Use the store fairly.</p>',
-            'url': 'https://acme.example/policies/terms-of-service',
-          },
-        },
-      });
-
-      final result = await repo.getTermsOfService();
-
-      final page = result.fold((p) => p, (_) => null);
-      expect(page!.title, 'Terms of Service');
-      expect(page.body, 'Use the store fairly.');
+      expect(result.fold((_) => null, (f) => f), isA<Failure>());
     });
   });
 

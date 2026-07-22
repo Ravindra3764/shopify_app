@@ -6,6 +6,7 @@ import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/auth/presentation/providers/auth_providers.dart';
 import 'package:shopify_app/features/profile/domain/profile_content.dart';
+import 'package:shopify_app/features/profile/presentation/providers/content_providers.dart';
 import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
 import 'package:shopify_app/shared/widgets/confirm_dialog.dart';
@@ -38,6 +39,10 @@ class ProfileScreen extends ConsumerWidget {
     final isAuthed = customer != null;
     final config = ref.watch(appConfigProvider);
     final wishlistEnabled = config.features.wishlistEnabled;
+    // Empty until the policy links load; tiles pop in once available.
+    final availablePolicies =
+        ref.watch(availablePoliciesProvider).valueOrNull ??
+        const <ProfileContent>{};
 
     /// Runs [action] when signed in, otherwise routes the guest to sign-in.
     void gated(VoidCallback action) {
@@ -88,27 +93,26 @@ class ProfileScreen extends ConsumerWidget {
             ),
           const SizedBox(height: AppSpacing.lg),
           const _SectionLabel('More'),
-          _ProfileTile(
-            icon: Icons.privacy_tip_outlined,
-            label: ProfileContent.privacyPolicy.title,
-            onTap: () => openContent(ProfileContent.privacyPolicy),
-          ),
-          _ProfileTile(
-            icon: Icons.description_outlined,
-            label: ProfileContent.terms.title,
-            onTap: () => openContent(ProfileContent.terms),
-          ),
+          // Only the store policies the merchant has actually configured
+          // (Settings → Policies) are shown, in a stable order.
+          for (final policy in ProfileContent.policies)
+            if (availablePolicies.contains(policy))
+              _ProfileTile(
+                icon: _contentIcon(policy),
+                label: policy.title,
+                onTap: () => openContent(policy),
+              ),
           // About / Help pages are optional per tenant — shown only when a
           // page handle is configured.
           if (config.aboutPageHandle != null)
             _ProfileTile(
-              icon: Icons.info_outline,
+              icon: _contentIcon(ProfileContent.about),
               label: ProfileContent.about.title,
               onTap: () => openContent(ProfileContent.about),
             ),
           if (config.helpPageHandle != null)
             _ProfileTile(
-              icon: Icons.help_outline,
+              icon: _contentIcon(ProfileContent.help),
               label: ProfileContent.help.title,
               onTap: () => openContent(ProfileContent.help),
             ),
@@ -125,6 +129,17 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 }
+
+/// Menu icon for a static-content entry.
+IconData _contentIcon(ProfileContent content) => switch (content) {
+  ProfileContent.privacyPolicy => Icons.privacy_tip_outlined,
+  ProfileContent.terms => Icons.description_outlined,
+  ProfileContent.refund => Icons.assignment_return_outlined,
+  ProfileContent.shipping => Icons.local_shipping_outlined,
+  ProfileContent.subscription => Icons.event_repeat_outlined,
+  ProfileContent.about => Icons.info_outline,
+  ProfileContent.help => Icons.help_outline,
+};
 
 /// Signed-out header: prompt to sign in or create an account.
 class _SignInCard extends StatelessWidget {
