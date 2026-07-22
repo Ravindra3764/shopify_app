@@ -16,11 +16,7 @@ class OrderLine {
   /// Builds from a Storefront `OrderLineItem` node.
   factory OrderLine.fromJson(Map<String, dynamic> json) {
     final variant = parseMap(json, 'variant', model: _model);
-    final rawVariantTitle = parseStringOrNull(
-      variant,
-      'title',
-      model: _model,
-    );
+    final rawVariantTitle = parseStringOrNull(variant, 'title', model: _model);
     return OrderLine(
       title: parseString(json, 'title', model: _model),
       quantity: parseInt(json, 'quantity', model: _model),
