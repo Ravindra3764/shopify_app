@@ -16,6 +16,8 @@ class AppConfig {
     this.wishlistHintText =
         'Double-tap any product to save it to your wishlist.',
     this.popularSearches = const [],
+    this.aboutPageHandle,
+    this.helpPageHandle,
   });
 
   factory AppConfig.fromEnv(Map<String, String> env) {
@@ -25,6 +27,11 @@ class AppConfig {
         throw StateError('Missing required config key: $key');
       }
       return value;
+    }
+
+    String? optional(String key) {
+      final value = env[key]?.trim();
+      return (value == null || value.isEmpty) ? null : value;
     }
 
     return AppConfig(
@@ -51,6 +58,10 @@ class AppConfig {
           .map((s) => s.trim())
           .where((s) => s.isNotEmpty)
           .toList(),
+      // Online Store → Pages handles for the About / Help entries under
+      // Profile → More. Null when the tenant has no such page → tile hidden.
+      aboutPageHandle: optional('ABOUT_PAGE_HANDLE'),
+      helpPageHandle: optional('HELP_PAGE_HANDLE'),
     );
   }
 
@@ -78,4 +89,12 @@ class AppConfig {
 
   /// Suggested search terms shown as chips on the search screen. Per-tenant.
   final List<String> popularSearches;
+
+  /// Handle of the Online Store "About us" page (Profile → More). Null when
+  /// the tenant hasn't published one — the About tile is then hidden.
+  final String? aboutPageHandle;
+
+  /// Handle of the Online Store "Help & support" page (Profile → More). Null
+  /// when the tenant hasn't published one — the Help tile is then hidden.
+  final String? helpPageHandle;
 }

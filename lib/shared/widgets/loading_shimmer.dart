@@ -27,6 +27,10 @@ class LoadingShimmer extends StatelessWidget {
   /// Cart skeleton: header lines, a few item rows, and a totals card.
   const LoadingShimmer.cart({Key? key}) : this._(_cartLayout, key: key);
 
+  /// Long-form content skeleton: a title line followed by paragraph lines —
+  /// mirrors a policy / about / help page.
+  const LoadingShimmer.article({Key? key}) : this._(_articleLayout, key: key);
+
   final Widget Function(BuildContext) _builder;
 
   @override
@@ -177,6 +181,31 @@ class LoadingShimmer extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
         ],
         const _Box(height: AppDimensions.cartSummaryShimmerHeight),
+      ],
+    );
+  }
+
+  static Widget _articleLayout(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      children: [
+        const _Box(
+          height: AppSpacing.lg,
+          width: AppDimensions.shimmerTitleWidth,
+          radius: AppDimensions.radiusSm,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        for (var i = 0; i < 12; i++) ...[
+          _Box(
+            height: AppSpacing.sm,
+            // Every fourth line is short, mimicking a paragraph break.
+            width: i.isOdd && i % 4 == 3
+                ? AppDimensions.shimmerShortWidth
+                : null,
+            radius: AppDimensions.radiusSm,
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ],
       ],
     );
   }
