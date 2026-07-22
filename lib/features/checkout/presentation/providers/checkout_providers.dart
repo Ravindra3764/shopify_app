@@ -7,8 +7,10 @@ import 'package:shopify_app/features/auth/presentation/providers/auth_providers.
 import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart'
     show PromoOutcome, cartProvider, cartRepositoryProvider;
 import 'package:shopify_app/features/checkout/data/checkout_repository_impl.dart';
+import 'package:shopify_app/features/checkout/data/order_verifier.dart';
 import 'package:shopify_app/features/checkout/domain/checkout_repository.dart';
 import 'package:shopify_app/features/checkout/presentation/providers/checkout_state.dart';
+import 'package:shopify_app/features/orders/presentation/providers/orders_providers.dart';
 import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/providers/shopify_providers.dart';
 import 'package:shopify_app/providers/storage_providers.dart';
@@ -21,6 +23,16 @@ final checkoutRepositoryProvider = Provider<CheckoutRepository>(
   (ref) => CheckoutRepositoryImpl(
     ref.watch(apiClientProvider),
     countryCode: ref.watch(appConfigProvider).defaultCountry,
+  ),
+);
+
+/// Verifies a placed order against the signed-in customer's `customer.orders`
+/// after payment. Depends on the buyer token, so it re-creates when auth
+/// changes.
+final orderVerifierProvider = Provider<OrderVerifier>(
+  (ref) => OrderVerifier(
+    ref.watch(orderRepositoryProvider),
+    ref.watch(authTokenProvider),
   ),
 );
 

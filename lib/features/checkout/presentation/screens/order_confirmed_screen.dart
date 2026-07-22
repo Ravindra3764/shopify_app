@@ -105,6 +105,17 @@ class _OrderConfirmedScreenState extends State<OrderConfirmedScreen>
                           color: AppColors.textPrimary,
                         ),
                       ),
+                      if (order?.orderName != null) ...[
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          order!.orderName!,
+                          textAlign: TextAlign.center,
+                          style: textTheme.titleMedium?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: AppSpacing.sm),
                       Text(
                         subtitle,

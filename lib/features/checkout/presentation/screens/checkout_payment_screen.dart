@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,6 +54,14 @@ class _CheckoutPaymentScreenState extends ConsumerState<CheckoutPaymentScreen> {
   /// on the thank-you page resolves this as "not paid".
   bool _verifying = false;
 
+  /// True while confirming the placed order against `customer.orders` after
+  /// payment (signed-in shoppers). Shows a blocking "Confirming…" overlay.
+  bool _confirming = false;
+
+  /// The customer's newest order id captured before payment, so verification
+  /// can detect the *new* order regardless of clock skew. `null` for guests.
+  String? _previousOrderId;
+
   bool get _inApp => ref.read(featureFlagsProvider).inAppWebviewCheckout;
 
   @override
@@ -64,6 +74,19 @@ class _CheckoutPaymentScreenState extends ConsumerState<CheckoutPaymentScreen> {
       _loading = false;
       WidgetsBinding.instance.addPostFrameCallback((_) => _launchExternal());
     }
+    _snapshotLatestOrder();
+  }
+
+  /// Records the newest existing order id up front so [_complete] can spot the
+  /// order this checkout creates. Best-effort: failure just means no baseline.
+  void _snapshotLatestOrder() {
+    final verifier = ref.read(orderVerifierProvider);
+    if (!verifier.canVerify) return;
+    unawaited(
+      verifier.latestOrderId().then((id) {
+        if (mounted) _previousOrderId = id;
+      }),
+    );
   }
 
   WebViewController _buildController() {
@@ -172,7 +195,7 @@ class _CheckoutPaymentScreenState extends ConsumerState<CheckoutPaymentScreen> {
     // Snapshot the paid cart before clearing it, so the confirmation screen
     // can show the order details.
     final checkout = ref.read(checkoutProvider).valueOrNull;
-    final confirmation = checkout == null
+    var confirmation = checkout == null
         ? null
         : OrderConfirmation(
             lines: checkout.cart.lines,
@@ -183,6 +206,21 @@ class _CheckoutPaymentScreenState extends ConsumerState<CheckoutPaymentScreen> {
             shipping: checkout.cart.selectedShipping,
             tax: checkout.cart.tax,
           );
+
+    // For a signed-in shopper, confirm the order actually landed on their
+    // account (server-side proof) and stamp its real order name onto the
+    // confirmation. Guests skip this — they have no queryable orders.
+    final verifier = ref.read(orderVerifierProvider);
+    if (confirmation != null && verifier.canVerify) {
+      if (mounted) setState(() => _confirming = true);
+      final order = await verifier.awaitNewOrder(
+        previousLatestOrderId: _previousOrderId,
+      );
+      if (order != null) {
+        confirmation = confirmation.copyWith(orderName: order.name);
+      }
+    }
+
     await ref.read(cartProvider.notifier).clearCart();
     if (mounted) context.go(AppRoutes.orderConfirmed, extra: confirmation);
   }
@@ -209,7 +247,12 @@ class _CheckoutPaymentScreenState extends ConsumerState<CheckoutPaymentScreen> {
               ),
             ]
           : null,
-      child: _inApp ? _buildWebView() : _buildExternalPrompt(),
+      child: Stack(
+        children: [
+          if (_inApp) _buildWebView() else _buildExternalPrompt(),
+          if (_confirming) const _ConfirmingOverlay(),
+        ],
+      ),
     );
   }
 
@@ -274,6 +317,34 @@ class _CheckoutPaymentScreenState extends ConsumerState<CheckoutPaymentScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Full-screen blocking overlay shown while the paid order is being confirmed
+/// against the customer's account after payment.
+class _ConfirmingOverlay extends StatelessWidget {
+  const _ConfirmingOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: AppColors.scrim,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: AppColors.white),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              'Confirming your order…',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: AppColors.white),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
