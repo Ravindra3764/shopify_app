@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shopify_app/config/feature_flags.dart';
 import 'package:shopify_app/core/error/failure.dart';
+import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart';
@@ -386,6 +387,7 @@ class _StickyActionBar extends ConsumerStatefulWidget {
 
 class _StickyActionBarState extends ConsumerState<_StickyActionBar> {
   bool _isAdding = false;
+  bool _isBuying = false;
   bool _justAdded = false;
   Timer? _resetTimer;
 
@@ -393,6 +395,30 @@ class _StickyActionBarState extends ConsumerState<_StickyActionBar> {
   void dispose() {
     _resetTimer?.cancel();
     super.dispose();
+  }
+
+  /// Adds the selected variant, then goes straight to checkout with the cart.
+  Future<void> _buyNow() async {
+    final variantId = widget.merchandiseId;
+    if (variantId == null) return;
+
+    setState(() => _isBuying = true);
+    await ref
+        .read(cartProvider.notifier)
+        .addVariant(variantId, quantity: widget.quantity);
+    if (!mounted) return;
+
+    final failed = ref.read(cartProvider).hasError;
+    setState(() => _isBuying = false);
+    if (failed) {
+      showAppSnackBar(
+        context,
+        "Couldn't start checkout. Please try again.",
+        icon: Icons.error_outline,
+      );
+      return;
+    }
+    unawaited(context.push(AppRoutes.checkout));
   }
 
   Future<void> _addToCart() async {
@@ -462,13 +488,8 @@ class _StickyActionBarState extends ConsumerState<_StickyActionBar> {
               Expanded(
                 child: CustomButton.primary(
                   label: 'Buy Now',
-                  onPressed: widget.canPurchase
-                      ? () => showAppSnackBar(
-                          context,
-                          'Express checkout is on the way.',
-                          icon: Icons.bolt_outlined,
-                        )
-                      : null,
+                  isLoading: _isBuying,
+                  onPressed: canAdd ? _buyNow : null,
                 ),
               ),
             ],
