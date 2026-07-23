@@ -14,6 +14,7 @@ class FeatureFlags {
     this.wishlistHintAlways = false,
     this.productDetailSheetEnabled = false,
     this.reviewSubmissionEnabled = false,
+    this.reviewOnlyPurchased = false,
   });
 
   /// Reads flags from `.env` string values (`"true"` / `"false"`).
@@ -53,6 +54,7 @@ class FeatureFlags {
         'REVIEW_SUBMISSION_ENABLED',
         fallback: false,
       ),
+      reviewOnlyPurchased: flag('REVIEW_ONLY_PURCHASED', fallback: false),
     );
   }
 
@@ -94,4 +96,9 @@ class FeatureFlags {
   /// capable review provider (the Storefront API is read-only); defaults to
   /// `false` until a tenant wires one in.
   final bool reviewSubmissionEnabled;
+
+  /// When `true`, only customers who purchased a product (it appears in one of
+  /// their orders) may review it; when `false`, any signed-in shopper can
+  /// review any product. Only meaningful when [reviewSubmissionEnabled].
+  final bool reviewOnlyPurchased;
 }

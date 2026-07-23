@@ -11,6 +11,7 @@ class OrderLine {
     required this.lineTotal,
     this.variantTitle,
     this.image,
+    this.productId,
   });
 
   /// Builds from a Storefront `OrderLineItem` node.
@@ -28,6 +29,11 @@ class OrderLine {
       image: ShopifyImage.fromJsonOrNull(
         parseMap(variant, 'image', model: _model),
       ),
+      productId: parseStringOrNull(
+        parseMap(variant, 'product', model: _model),
+        'id',
+        model: _model,
+      ),
     );
   }
 
@@ -40,4 +46,8 @@ class OrderLine {
   /// Variant label (e.g. `Large / Blue`), or `null` for single-variant items.
   final String? variantTitle;
   final ShopifyImage? image;
+
+  /// The purchased product's GID (`gid://shopify/Product/…`), used to gate
+  /// reviews to products the customer has actually bought. Null if absent.
+  final String? productId;
 }

@@ -7,7 +7,9 @@ import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/auth/presentation/providers/auth_providers.dart';
 import 'package:shopify_app/features/reviews/domain/product_reviews_args.dart';
 import 'package:shopify_app/features/reviews/domain/review_draft.dart';
+import 'package:shopify_app/features/reviews/presentation/providers/purchased_products_provider.dart';
 import 'package:shopify_app/features/reviews/presentation/providers/write_review_providers.dart';
+import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
@@ -44,6 +46,21 @@ class _WriteReviewScreenState extends ConsumerState<WriteReviewScreen> {
     if (_rating < 1 || !bodyValid || customer == null) {
       setState(() => _showErrors = true);
       return;
+    }
+
+    // Defense-in-depth: the CTA already hides for non-purchasers, but a deep
+    // link could reach here — re-check the purchase gate before submitting.
+    if (ref.read(featureFlagsProvider).reviewOnlyPurchased) {
+      final purchased =
+          ref.read(purchasedProductIdsProvider).valueOrNull ?? const {};
+      if (!purchased.contains(widget.args.productId)) {
+        showAppSnackBar(
+          context,
+          'You can only review products you have purchased.',
+          icon: Icons.lock_outline,
+        );
+        return;
+      }
     }
 
     final ok = await ref
