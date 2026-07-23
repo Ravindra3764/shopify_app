@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/features/checkout/presentation/widgets/promo_offers_banner.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
 import 'package:shopify_app/shared/widgets/custom_text_box.dart';
 import 'package:shopify_app/shopify/models/cart.dart';
 import 'package:shopify_app/shopify/models/money.dart';
+import 'package:shopify_app/shopify/models/promo_offer.dart';
 
 /// Final order summary: Subtotal / Shipping / Tax / Total, an optional promo
 /// entry, and the Pay call-to-action.
@@ -19,6 +21,7 @@ class CheckoutSummary extends StatelessWidget {
     super.key,
     this.isPaying = false,
     this.showPromo = false,
+    this.promoOffers = const [],
     this.onApplyPromo,
     this.onRemovePromo,
   });
@@ -27,6 +30,10 @@ class CheckoutSummary extends StatelessWidget {
   final VoidCallback onPay;
   final bool isPaying;
   final bool showPromo;
+
+  /// Tenant-advertised offers surfaced as a one-tap banner above the promo
+  /// field. Empty hides the banner. Applied through [onApplyPromo].
+  final List<PromoOffer> promoOffers;
   final ValueChanged<String>? onApplyPromo;
   final ValueChanged<String>? onRemovePromo;
 
@@ -44,6 +51,15 @@ class CheckoutSummary extends StatelessWidget {
     final applied = cart.appliedDiscountCodes;
     return Column(
       children: [
+        if (promoOffers.isNotEmpty && onApplyPromo != null) ...[
+          PromoOffersBanner(
+            offers: promoOffers,
+            appliedCodes: [for (final c in cart.discountCodes) c.code],
+            subtotal: cart.subtotal.amount,
+            onApply: onApplyPromo!,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+        ],
         if (showPromo && onApplyPromo != null) ...[
           _PromoField(onApply: onApplyPromo!),
           const SizedBox(height: AppSpacing.lg),
