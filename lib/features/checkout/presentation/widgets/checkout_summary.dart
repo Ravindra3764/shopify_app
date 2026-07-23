@@ -55,6 +55,7 @@ class CheckoutSummary extends StatelessWidget {
           PromoOffersBanner(
             offers: promoOffers,
             appliedCodes: [for (final c in cart.discountCodes) c.code],
+            subtotal: cart.subtotal.amount,
             onApply: onApplyPromo!,
           ),
           const SizedBox(height: AppSpacing.lg),

@@ -19,6 +19,7 @@ class PromoOffersBanner extends StatelessWidget {
   const PromoOffersBanner({
     required this.offers,
     required this.appliedCodes,
+    required this.subtotal,
     required this.onApply,
     super.key,
   });
@@ -27,6 +28,11 @@ class PromoOffersBanner extends StatelessWidget {
 
   /// Codes already on the cart — matching offers are hidden to avoid re-apply.
   final List<String> appliedCodes;
+
+  /// Current cart subtotal (major units) — offers whose
+  /// [PromoOffer.minSubtotal] this doesn't meet are hidden, since Shopify
+  /// would reject them anyway.
+  final double subtotal;
   final ValueChanged<String> onApply;
 
   @override
@@ -34,7 +40,8 @@ class PromoOffersBanner extends StatelessWidget {
     final applied = {for (final c in appliedCodes) c.toLowerCase()};
     final available = [
       for (final o in offers)
-        if (!applied.contains(o.code.toLowerCase())) o,
+        if (!applied.contains(o.code.toLowerCase()) && o.isEligible(subtotal))
+          o,
     ];
     if (available.isEmpty) return const SizedBox.shrink();
 

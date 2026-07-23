@@ -14,8 +14,25 @@ void main() {
       expect(offers, hasLength(2));
       expect(offers[0].code, 'SAVE10');
       expect(offers[0].label, '10% off');
+      expect(offers[0].minSubtotal, isNull);
       expect(offers[1].code, 'FREESHIP');
       expect(offers[1].label, 'Free shipping');
+    });
+
+    test('reads a trailing numeric field as minSubtotal', () {
+      final offers = PromoOffer.parse('SAVE10:10% off orders over 999:999');
+      expect(offers.single.code, 'SAVE10');
+      expect(offers.single.label, '10% off orders over 999');
+      expect(offers.single.minSubtotal, 999);
+    });
+
+    test('minSubtotal null gates isEligible open; threshold gates it', () {
+      const gated = PromoOffer(code: 'SAVE10', label: 'x', minSubtotal: 999);
+      const open = PromoOffer(code: 'FREESHIP', label: 'y');
+      expect(open.isEligible(0), isTrue);
+      expect(gated.isEligible(998), isFalse);
+      expect(gated.isEligible(999), isTrue);
+      expect(gated.isEligible(1500), isTrue);
     });
 
     test('uppercases the code and trims whitespace', () {
