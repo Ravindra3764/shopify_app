@@ -8,6 +8,7 @@ class FeatureFlags {
     this.guestCheckoutEnabled = false,
     this.addressBookEnabled = true,
     this.promoCodesEnabled = false,
+    this.promoOffersEnabled = false,
     this.inAppWebviewCheckout = true,
     this.phoneRequired = false,
     this.wishlistDoubleTapHintEnabled = true,
@@ -36,6 +37,10 @@ class FeatureFlags {
       guestCheckoutEnabled: flag('GUEST_CHECKOUT_ENABLED', fallback: false),
       addressBookEnabled: flag('CHECKOUT_ADDRESS_BOOK_ENABLED', fallback: true),
       promoCodesEnabled: flag('CHECKOUT_PROMO_CODES_ENABLED', fallback: false),
+      promoOffersEnabled: flag(
+        'CHECKOUT_PROMO_OFFERS_ENABLED',
+        fallback: false,
+      ),
       inAppWebviewCheckout: flag(
         'CHECKOUT_IN_APP_WEBVIEW_ENABLED',
         fallback: true,
@@ -71,6 +76,11 @@ class FeatureFlags {
 
   /// Whether a promo-code entry is offered during checkout.
   final bool promoCodesEnabled;
+
+  /// Whether tenant-advertised promo codes (`AppConfig.promoOffers`) are
+  /// surfaced at checkout as a one-tap-to-apply banner. Independent of
+  /// [promoCodesEnabled] (the manual entry field).
+  final bool promoOffersEnabled;
 
   /// Whether the hosted Shopify payment page opens in an in-app WebView
   /// (`true`) or the device's external browser (`false`).

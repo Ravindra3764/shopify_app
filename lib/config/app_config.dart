@@ -1,4 +1,5 @@
 import 'package:shopify_app/config/feature_flags.dart';
+import 'package:shopify_app/config/promo_offer.dart';
 
 class AppConfig {
   const AppConfig({
@@ -16,6 +17,7 @@ class AppConfig {
     this.wishlistHintText =
         'Double-tap any product to save it to your wishlist.',
     this.popularSearches = const [],
+    this.promoOffers = const [],
     this.aboutPageHandle,
     this.helpPageHandle,
     this.judgeMeShopDomain,
@@ -60,6 +62,9 @@ class AppConfig {
           .map((s) => s.trim())
           .where((s) => s.isNotEmpty)
           .toList(),
+      // Tenant-advertised promo codes surfaced at checkout (see PromoOffer):
+      // pipe-separated `CODE:Label` entries.
+      promoOffers: PromoOffer.parse(env['PROMO_OFFERS']),
       // Online Store → Pages handles for the About / Help entries under
       // Profile → More. Null when the tenant has no such page → tile hidden.
       aboutPageHandle: optional('ABOUT_PAGE_HANDLE'),
@@ -96,6 +101,11 @@ class AppConfig {
 
   /// Suggested search terms shown as chips on the search screen. Per-tenant.
   final List<String> popularSearches;
+
+  /// Promo codes the tenant advertises to shoppers at checkout. Surfaced as a
+  /// tappable banner (one-tap apply) when [FeatureFlags.promoOffersEnabled] is
+  /// on. Empty when the tenant advertises none — the banner is then hidden.
+  final List<PromoOffer> promoOffers;
 
   /// Handle of the Online Store "About us" page (Profile → More). Null when
   /// the tenant hasn't published one — the About tile is then hidden.
