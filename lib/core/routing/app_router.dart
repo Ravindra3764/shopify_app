@@ -24,6 +24,7 @@ import 'package:shopify_app/features/profile/presentation/screens/content_page_s
 import 'package:shopify_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:shopify_app/features/reviews/domain/product_reviews_args.dart';
 import 'package:shopify_app/features/reviews/presentation/screens/product_reviews_screen.dart';
+import 'package:shopify_app/features/reviews/presentation/screens/write_review_screen.dart';
 import 'package:shopify_app/features/search/presentation/screens/search_screen.dart';
 import 'package:shopify_app/features/splash/presentation/screens/splash_screen.dart';
 import 'package:shopify_app/features/wishlist/presentation/screens/wishlist_screen.dart';
@@ -170,6 +171,15 @@ GoRouter createRouter({bool sheetProductDetail = false}) {
           final args = state.extra;
           return args is ProductReviewsArgs
               ? ProductReviewsScreen(args: args)
+              : const HomeScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.productReviewWrite,
+        builder: (context, state) {
+          final args = state.extra;
+          return args is ProductReviewsArgs
+              ? WriteReviewScreen(args: args)
               : const HomeScreen();
         },
       ),

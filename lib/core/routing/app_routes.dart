@@ -78,4 +78,8 @@ abstract final class AppRoutes {
   /// Full reviews list for a product (pushed full-screen). The
   /// `ProductReviewsArgs` to load is passed as typed `extra`.
   static const String productReviews = '/product/reviews';
+
+  /// Review submission form (pushed full-screen; requires sign-in). The
+  /// `ProductReviewsArgs` for the product is passed as typed `extra`.
+  static const String productReviewWrite = '/product/reviews/write';
 }

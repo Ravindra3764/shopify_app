@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shopify_app/core/error/failure.dart';
+import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/features/auth/presentation/providers/auth_providers.dart';
 import 'package:shopify_app/features/reviews/domain/product_reviews_args.dart';
 import 'package:shopify_app/features/reviews/presentation/providers/reviews_providers.dart';
 import 'package:shopify_app/features/reviews/presentation/widgets/review_tile.dart';
 import 'package:shopify_app/features/reviews/presentation/widgets/reviews_summary_card.dart';
+import 'package:shopify_app/providers/config_providers.dart';
+import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
+import 'package:shopify_app/shared/widgets/custom_button.dart';
 import 'package:shopify_app/shared/widgets/empty_state_view.dart';
 import 'package:shopify_app/shared/widgets/error_view.dart';
 import 'package:shopify_app/shared/widgets/loading_shimmer.dart';
@@ -61,6 +67,7 @@ class _ProductReviewsScreenState extends ConsumerState<ProductReviewsScreen> {
             averageRating: widget.args.averageRating,
             reviewsCount: widget.args.reviewsCount,
           );
+          final cta = _WriteReviewCta(args: widget.args);
           if (data.reviews.isEmpty) {
             return ListView(
               padding: const EdgeInsets.symmetric(
@@ -69,6 +76,8 @@ class _ProductReviewsScreenState extends ConsumerState<ProductReviewsScreen> {
               ),
               children: [
                 summary,
+                const SizedBox(height: AppSpacing.lg),
+                cta,
                 const SizedBox(height: AppSpacing.xl),
                 const EmptyStateView(
                   icon: Icons.reviews_outlined,
@@ -92,7 +101,14 @@ class _ProductReviewsScreenState extends ConsumerState<ProductReviewsScreen> {
               if (index == 0) {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: summary,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      summary,
+                      const SizedBox(height: AppSpacing.lg),
+                      cta,
+                    ],
+                  ),
                 );
               }
               final reviewIndex = index - 1;
@@ -112,6 +128,34 @@ class _ProductReviewsScreenState extends ConsumerState<ProductReviewsScreen> {
           onRetry: () => ref.invalidate(reviewsProvider(productId)),
         ),
       ),
+    );
+  }
+}
+
+/// "Write a review" action, shown only when the tenant enables review
+/// submission. Routes signed-in shoppers to the form; prompts sign-in
+/// otherwise.
+class _WriteReviewCta extends ConsumerWidget {
+  const _WriteReviewCta({required this.args});
+
+  final ProductReviewsArgs args;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final enabled = ref.watch(featureFlagsProvider).reviewSubmissionEnabled;
+    if (!enabled) return const SizedBox.shrink();
+
+    return CustomButton.outline(
+      label: 'Write a review',
+      leadingIcon: const Icon(Icons.rate_review_outlined),
+      onPressed: () {
+        if (ref.read(isAuthenticatedProvider)) {
+          context.push(AppRoutes.productReviewWrite, extra: args);
+        } else {
+          showAppSnackBar(context, 'Sign in to write a review.');
+          context.push(AppRoutes.login);
+        }
+      },
     );
   }
 }

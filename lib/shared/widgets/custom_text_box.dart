@@ -41,6 +41,8 @@ class CustomTextBox extends StatefulWidget {
     this.enabled = true,
     this.autofillHints,
     this.inputFormatters,
+    this.maxLines = 1,
+    this.minLines,
   }) : _variant = _TextBoxVariant.standard;
 
   /// Search field with a leading magnifier icon.
@@ -61,7 +63,9 @@ class CustomTextBox extends StatefulWidget {
        prefix = null,
        suffix = null,
        autofillHints = null,
-       inputFormatters = null;
+       inputFormatters = null,
+       maxLines = 1,
+       minLines = null;
 
   /// Obscured password field with a show/hide toggle.
   const CustomTextBox.password({
@@ -81,7 +85,9 @@ class CustomTextBox extends StatefulWidget {
        textCapitalization = TextCapitalization.none,
        prefix = null,
        suffix = null,
-       inputFormatters = null;
+       inputFormatters = null,
+       maxLines = 1,
+       minLines = null;
 
   /// Controls the field's text.
   final TextEditingController? controller;
@@ -117,6 +123,13 @@ class CustomTextBox extends StatefulWidget {
   final Iterable<String>? autofillHints;
   final List<TextInputFormatter>? inputFormatters;
 
+  /// Max lines the field grows to (1 = single line). Set higher with [minLines]
+  /// for a multi-line input (e.g. a review body).
+  final int maxLines;
+
+  /// Min lines shown before scrolling; null uses [maxLines].
+  final int? minLines;
+
   final _TextBoxVariant _variant;
 
   @override
@@ -134,6 +147,8 @@ class _CustomTextBoxState extends State<CustomTextBox> {
       controller: widget.controller,
       enabled: widget.enabled,
       obscureText: _obscured,
+      maxLines: _obscured ? 1 : widget.maxLines,
+      minLines: widget.minLines,
       keyboardType: widget.keyboardType,
       textInputAction: widget.textInputAction,
       textCapitalization: widget.textCapitalization,

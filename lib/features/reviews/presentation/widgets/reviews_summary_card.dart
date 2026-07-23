@@ -123,9 +123,7 @@ class _DistributionRow extends StatelessWidget {
           width: AppSpacing.md,
           child: Text(
             '$star',
-            style: textTheme.bodySmall?.copyWith(
-              color: AppColors.textTertiary,
-            ),
+            style: textTheme.bodySmall?.copyWith(color: AppColors.textTertiary),
           ),
         ),
         const SizedBox(width: AppSpacing.xs),
