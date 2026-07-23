@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shopify_app/Helper/assets_helper.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart';
 import 'package:shopify_app/features/wishlist/presentation/providers/wishlist_providers.dart';
 import 'package:shopify_app/providers/config_providers.dart';
 
-/// Home top bar: menu, centered store name, wishlist, cart.
+/// Home top bar: tenant logo, centered store name, wishlist, cart.
 class HomeHeader extends ConsumerWidget {
-  const HomeHeader({super.key, this.onMenu, this.onCart, this.onWishlist});
+  const HomeHeader({super.key, this.onCart, this.onWishlist});
 
-  final VoidCallback? onMenu;
   final VoidCallback? onCart;
 
   /// Opens the wishlist. `null` hides the heart — e.g. tenants with the
@@ -19,7 +19,10 @@ class HomeHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final appName = ref.watch(appConfigProvider).appName;
+    final config = ref.watch(appConfigProvider);
+    final appName = config.appName;
+    // AssetsHelper prepends `assets/images/`; pass the bare file name.
+    final logoName = config.logoAsset.split('/').last;
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -41,7 +44,15 @@ class HomeHeader extends ConsumerWidget {
           ),
           Align(
             alignment: Alignment.centerLeft,
-            child: _IconButton(icon: Icons.menu, onTap: onMenu),
+            child: Semantics(
+              label: appName,
+              image: true,
+              child: AssetsHelper.getImageAsset(
+                logoName,
+                height: AppDimensions.iconLg,
+                fit: BoxFit.contain,
+              ),
+            ),
           ),
           Align(
             alignment: Alignment.centerRight,
@@ -65,25 +76,6 @@ class HomeHeader extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _IconButton extends StatelessWidget {
-  const _IconButton({required this.icon, this.onTap});
-
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkResponse(
-      onTap: onTap,
-      child: Icon(
-        icon,
-        size: AppDimensions.iconMd,
-        color: AppColors.textPrimary,
       ),
     );
   }
