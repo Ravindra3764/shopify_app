@@ -11,6 +11,7 @@ import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/confirm_dialog.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
+import 'package:shopify_app/shared/widgets/loading_shimmer.dart';
 import 'package:shopify_app/shopify/models/customer.dart';
 
 /// Profile tab. The account menu (orders, addresses, policies…) is always
@@ -34,8 +35,12 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
     final customer = ref.watch(currentCustomerProvider);
     final isAuthed = customer != null;
+    // Cold-start session restore hits the network; show a header skeleton
+    // instead of flashing the sign-in card and popping in the identity card.
+    final isRestoringSession = authState.isLoading && !authState.hasValue;
     final config = ref.watch(appConfigProvider);
     final wishlistEnabled = config.features.wishlistEnabled;
     // Empty until the policy links load; tiles pop in once available.
@@ -66,7 +71,9 @@ class ProfileScreen extends ConsumerWidget {
         ),
         children: [
           const SizedBox(height: AppSpacing.sm),
-          if (isAuthed)
+          if (isRestoringSession)
+            const LoadingShimmer.profileHeader()
+          else if (isAuthed)
             _IdentityCard(customer: customer)
           else
             const _SignInCard(),

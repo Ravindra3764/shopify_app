@@ -34,6 +34,11 @@ class LoadingShimmer extends StatelessWidget {
   /// Order-history skeleton: a stack of order-summary card placeholders.
   const LoadingShimmer.orders({Key? key}) : this._(_ordersLayout, key: key);
 
+  /// Profile-header skeleton: avatar circle + name/email lines, matching the
+  /// signed-in identity card while the session restores.
+  const LoadingShimmer.profileHeader({Key? key})
+    : this._(_profileHeaderLayout, key: key);
+
   final Widget Function(BuildContext) _builder;
 
   @override
@@ -257,6 +262,45 @@ class LoadingShimmer extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  static Widget _profileHeaderLayout(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+      ),
+      child: const Row(
+        children: [
+          _Box(
+            height: AppDimensions.avatarRadius * 2,
+            width: AppDimensions.avatarRadius * 2,
+            radius: AppDimensions.avatarRadius,
+          ),
+          SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _Box(
+                  height: AppSpacing.md,
+                  width: AppDimensions.shimmerTitleWidth,
+                  radius: AppDimensions.radiusSm,
+                ),
+                SizedBox(height: AppSpacing.sm),
+                _Box(
+                  height: AppSpacing.sm,
+                  width: AppDimensions.shimmerShortWidth,
+                  radius: AppDimensions.radiusSm,
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
