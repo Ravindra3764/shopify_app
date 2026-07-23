@@ -401,6 +401,9 @@ class _ReviewStep extends ConsumerWidget {
         CheckoutSummary(
           cart: state.cart,
           showPromo: flags.promoCodesEnabled,
+          promoOffers: flags.promoOffersEnabled
+              ? ref.watch(appConfigProvider).promoOffers
+              : const [],
           onApplyPromo: (code) => unawaited(_applyPromo(context, ref, code)),
           onRemovePromo: (code) => unawaited(
             ref.read(checkoutProvider.notifier).removePromoCode(code),
