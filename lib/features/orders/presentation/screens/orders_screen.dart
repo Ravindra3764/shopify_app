@@ -11,6 +11,7 @@ import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/empty_state_view.dart';
 import 'package:shopify_app/shared/widgets/error_view.dart';
 import 'package:shopify_app/shared/widgets/loading_shimmer.dart';
+import 'package:shopify_app/shared/widgets/pull_to_refresh.dart';
 import 'package:shopify_app/shopify/models/order.dart';
 
 /// The signed-in customer's order history. Tapping an order opens its detail.
@@ -45,6 +46,11 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     }
   }
 
+  Future<void> _refresh() async {
+    ref.invalidate(ordersProvider);
+    await ref.read(ordersProvider.future);
+  }
+
   @override
   Widget build(BuildContext context) {
     final ordersAsync = ref.watch(ordersProvider);
@@ -52,30 +58,38 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       title: 'My orders',
       child: ordersAsync.when(
         data: (data) => data.orders.isEmpty
-            ? EmptyStateView(
-                icon: Icons.receipt_long_outlined,
-                message: "You haven't placed any orders yet.",
-                actionLabel: 'Start shopping',
-                onAction: () => context.go(AppRoutes.home),
-              )
-            : ListView.separated(
-                controller: _scrollController,
-                padding: const EdgeInsets.only(
-                  top: AppSpacing.sm,
-                  bottom: AppDimensions.floatingNavClearance,
+            ? PullToRefresh(
+                onRefresh: _refresh,
+                scrollable: false,
+                child: EmptyStateView(
+                  icon: Icons.receipt_long_outlined,
+                  message: "You haven't placed any orders yet.",
+                  actionLabel: 'Start shopping',
+                  onAction: () => context.go(AppRoutes.home),
                 ),
-                itemCount: data.orders.length + (data.hasMore ? 1 : 0),
-                separatorBuilder: (_, _) =>
-                    const SizedBox(height: AppSpacing.md),
-                itemBuilder: (context, index) {
-                  if (index >= data.orders.length) {
-                    return const Padding(
-                      padding: EdgeInsets.all(AppSpacing.md),
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-                  return _OrderCard(order: data.orders[index]);
-                },
+              )
+            : PullToRefresh(
+                onRefresh: _refresh,
+                child: ListView.separated(
+                  controller: _scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.only(
+                    top: AppSpacing.sm,
+                    bottom: AppDimensions.floatingNavClearance,
+                  ),
+                  itemCount: data.orders.length + (data.hasMore ? 1 : 0),
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: AppSpacing.md),
+                  itemBuilder: (context, index) {
+                    if (index >= data.orders.length) {
+                      return const Padding(
+                        padding: EdgeInsets.all(AppSpacing.md),
+                        child: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+                    return _OrderCard(order: data.orders[index]);
+                  },
+                ),
               ),
         loading: () => const LoadingShimmer.orders(),
         error: (e, _) => ErrorView(

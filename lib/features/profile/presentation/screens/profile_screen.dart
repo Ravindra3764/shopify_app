@@ -12,6 +12,7 @@ import 'package:shopify_app/shared/widgets/confirm_dialog.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
 import 'package:shopify_app/shared/widgets/loading_shimmer.dart';
+import 'package:shopify_app/shared/widgets/pull_to_refresh.dart';
 import 'package:shopify_app/shopify/models/customer.dart';
 
 /// Profile tab. The account menu (orders, addresses, policies…) is always
@@ -61,74 +62,85 @@ class ProfileScreen extends ConsumerWidget {
     void openContent(ProfileContent content) =>
         context.push(AppRoutes.content, extra: content);
 
+    Future<void> refresh() async {
+      ref
+        ..invalidate(authProvider)
+        ..invalidate(availablePoliciesProvider);
+      await ref.read(authProvider.future);
+    }
+
     return CustomBackground(
       showBackButton: false,
       title: 'Profile',
-      child: ListView(
-        // Clear the floating bottom nav so the sign-out button isn't hidden.
-        padding: const EdgeInsets.only(
-          bottom: AppDimensions.floatingNavClearance,
-        ),
-        children: [
-          const SizedBox(height: AppSpacing.sm),
-          if (isRestoringSession)
-            const LoadingShimmer.profileHeader()
-          else if (isAuthed)
-            _IdentityCard(customer: customer)
-          else
-            const _SignInCard(),
-          const SizedBox(height: AppSpacing.lg),
-          const _SectionLabel('Account'),
-          _ProfileTile(
-            icon: Icons.receipt_long_outlined,
-            label: 'My orders',
-            onTap: () => gated(() => context.push(AppRoutes.orders)),
+      child: PullToRefresh(
+        onRefresh: refresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          // Clear the floating bottom nav so the sign-out button isn't hidden.
+          padding: const EdgeInsets.only(
+            bottom: AppDimensions.floatingNavClearance,
           ),
-          _ProfileTile(
-            icon: Icons.location_on_outlined,
-            label: 'Addresses',
-            onTap: () => context.push(AppRoutes.addresses),
-          ),
-          if (wishlistEnabled)
+          children: [
+            const SizedBox(height: AppSpacing.sm),
+            if (isRestoringSession)
+              const LoadingShimmer.profileHeader()
+            else if (isAuthed)
+              _IdentityCard(customer: customer)
+            else
+              const _SignInCard(),
+            const SizedBox(height: AppSpacing.lg),
+            const _SectionLabel('Account'),
             _ProfileTile(
-              icon: Icons.favorite_border,
-              label: 'Wishlist',
-              onTap: () => context.push(AppRoutes.wishlist),
+              icon: Icons.receipt_long_outlined,
+              label: 'My orders',
+              onTap: () => gated(() => context.push(AppRoutes.orders)),
             ),
-          const SizedBox(height: AppSpacing.lg),
-          const _SectionLabel('More'),
-          // Only the store policies the merchant has actually configured
-          // (Settings → Policies) are shown, in a stable order.
-          for (final policy in ProfileContent.policies)
-            if (availablePolicies.contains(policy))
+            _ProfileTile(
+              icon: Icons.location_on_outlined,
+              label: 'Addresses',
+              onTap: () => context.push(AppRoutes.addresses),
+            ),
+            if (wishlistEnabled)
               _ProfileTile(
-                icon: _contentIcon(policy),
-                label: policy.title,
-                onTap: () => openContent(policy),
+                icon: Icons.favorite_border,
+                label: 'Wishlist',
+                onTap: () => context.push(AppRoutes.wishlist),
               ),
-          // About / Help pages are optional per tenant — shown only when a
-          // page handle is configured.
-          if (config.aboutPageHandle != null)
-            _ProfileTile(
-              icon: _contentIcon(ProfileContent.about),
-              label: ProfileContent.about.title,
-              onTap: () => openContent(ProfileContent.about),
-            ),
-          if (config.helpPageHandle != null)
-            _ProfileTile(
-              icon: _contentIcon(ProfileContent.help),
-              label: ProfileContent.help.title,
-              onTap: () => openContent(ProfileContent.help),
-            ),
-          if (isAuthed) ...[
-            const SizedBox(height: AppSpacing.xl),
-            CustomButton.outline(
-              label: 'Sign out',
-              onPressed: () => _confirmSignOut(context, ref),
-            ),
+            const SizedBox(height: AppSpacing.lg),
+            const _SectionLabel('More'),
+            // Only the store policies the merchant has actually configured
+            // (Settings → Policies) are shown, in a stable order.
+            for (final policy in ProfileContent.policies)
+              if (availablePolicies.contains(policy))
+                _ProfileTile(
+                  icon: _contentIcon(policy),
+                  label: policy.title,
+                  onTap: () => openContent(policy),
+                ),
+            // About / Help pages are optional per tenant — shown only when a
+            // page handle is configured.
+            if (config.aboutPageHandle != null)
+              _ProfileTile(
+                icon: _contentIcon(ProfileContent.about),
+                label: ProfileContent.about.title,
+                onTap: () => openContent(ProfileContent.about),
+              ),
+            if (config.helpPageHandle != null)
+              _ProfileTile(
+                icon: _contentIcon(ProfileContent.help),
+                label: ProfileContent.help.title,
+                onTap: () => openContent(ProfileContent.help),
+              ),
+            if (isAuthed) ...[
+              const SizedBox(height: AppSpacing.xl),
+              CustomButton.outline(
+                label: 'Sign out',
+                onPressed: () => _confirmSignOut(context, ref),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.lg),
           ],
-          const SizedBox(height: AppSpacing.lg),
-        ],
+        ),
       ),
     );
   }

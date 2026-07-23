@@ -16,6 +16,7 @@ import 'package:shopify_app/shared/widgets/custom_button.dart';
 import 'package:shopify_app/shared/widgets/empty_state_view.dart';
 import 'package:shopify_app/shared/widgets/error_view.dart';
 import 'package:shopify_app/shared/widgets/loading_shimmer.dart';
+import 'package:shopify_app/shared/widgets/pull_to_refresh.dart';
 import 'package:shopify_app/shopify/models/cart.dart';
 
 /// Cart tab — lists the guest cart's lines, cost breakdown, and checkout CTA.
@@ -37,11 +38,18 @@ class CartScreen extends ConsumerWidget {
         onRetry: () => ref.invalidate(cartProvider),
       );
     } else if (cart == null || cart.isEmpty) {
-      child = EmptyStateView(
-        icon: Icons.shopping_bag_outlined,
-        message: 'Your cart is empty.',
-        actionLabel: 'Continue Shopping',
-        onAction: () => context.go(AppRoutes.home),
+      child = PullToRefresh(
+        onRefresh: () async {
+          ref.invalidate(cartProvider);
+          await ref.read(cartProvider.future);
+        },
+        scrollable: false,
+        child: EmptyStateView(
+          icon: Icons.shopping_bag_outlined,
+          message: 'Your cart is empty.',
+          actionLabel: 'Continue Shopping',
+          onAction: () => context.go(AppRoutes.home),
+        ),
       );
     } else {
       child = _CartContent(cart: cart);
@@ -96,77 +104,87 @@ class _CartContent extends ConsumerWidget {
     final textTheme = Theme.of(context).textTheme;
     final notifier = ref.read(cartProvider.notifier);
 
+    Future<void> refresh() async {
+      ref.invalidate(cartProvider);
+      await ref.read(cartProvider.future);
+    }
+
     return SafeArea(
       bottom: false,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.md,
-          AppSpacing.md,
-          AppSpacing.md,
-          AppDimensions.floatingNavClearance,
-        ),
-        children: [
-          Text(
-            'Your Cart',
-            style: textTheme.headlineMedium?.copyWith(
-              color: AppColors.textPrimary,
-            ),
+      child: PullToRefresh(
+        onRefresh: refresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.md,
+            AppDimensions.floatingNavClearance,
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            '${cart.totalQuantity} '
-            '${cart.totalQuantity == 1 ? 'item' : 'items'} in your selection',
-            style: textTheme.bodyMedium?.copyWith(
-              color: AppColors.textTertiary,
+          children: [
+            Text(
+              'Your Cart',
+              style: textTheme.headlineMedium?.copyWith(
+                color: AppColors.textPrimary,
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          for (final line in cart.lines) ...[
-            CartItemTile(
-              line: line,
-              onIncrement: line.canIncrease
-                  ? () => notifier.setLineQuantity(line.id, line.quantity + 1)
-                  : null,
-              onDecrement: line.quantity > 1
-                  ? () => notifier.setLineQuantity(line.id, line.quantity - 1)
-                  : null,
-              onRemove: () => notifier.removeLine(line.id),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '${cart.totalQuantity} '
+              '${cart.totalQuantity == 1 ? 'item' : 'items'} in your selection',
+              style: textTheme.bodyMedium?.copyWith(
+                color: AppColors.textTertiary,
+              ),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
-              child: Divider(color: AppColors.divider, height: 1),
+            const SizedBox(height: AppSpacing.lg),
+            for (final line in cart.lines) ...[
+              CartItemTile(
+                line: line,
+                onIncrement: line.canIncrease
+                    ? () => notifier.setLineQuantity(line.id, line.quantity + 1)
+                    : null,
+                onDecrement: line.quantity > 1
+                    ? () => notifier.setLineQuantity(line.id, line.quantity - 1)
+                    : null,
+                onRemove: () => notifier.removeLine(line.id),
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                child: Divider(color: AppColors.divider, height: 1),
+              ),
+            ],
+            CartSummary(
+              cart: cart,
+              onApplyPromo: (code) =>
+                  unawaited(_applyPromo(context, notifier, code)),
+              onRemovePromo: (code) =>
+                  unawaited(notifier.removePromoCode(code)),
             ),
-          ],
-          CartSummary(
-            cart: cart,
-            onApplyPromo: (code) =>
-                unawaited(_applyPromo(context, notifier, code)),
-            onRemovePromo: (code) => unawaited(notifier.removePromoCode(code)),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          CustomButton.primary(
-            label: 'Proceed to Checkout',
-            trailingIcon: const Icon(
-              Icons.arrow_forward,
-              size: AppDimensions.iconSm,
-              color: AppColors.white,
+            const SizedBox(height: AppSpacing.lg),
+            CustomButton.primary(
+              label: 'Proceed to Checkout',
+              trailingIcon: const Icon(
+                Icons.arrow_forward,
+                size: AppDimensions.iconSm,
+                color: AppColors.white,
+              ),
+              onPressed: () => context.push(AppRoutes.checkout),
             ),
-            onPressed: () => context.push(AppRoutes.checkout),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Center(
-            child: TextButton(
-              onPressed: () => context.go(AppRoutes.home),
-              child: Text(
-                'CONTINUE SHOPPING',
-                style: textTheme.labelLarge?.copyWith(
-                  color: AppColors.textSecondary,
-                  letterSpacing: 1,
+            const SizedBox(height: AppSpacing.md),
+            Center(
+              child: TextButton(
+                onPressed: () => context.go(AppRoutes.home),
+                child: Text(
+                  'CONTINUE SHOPPING',
+                  style: textTheme.labelLarge?.copyWith(
+                    color: AppColors.textSecondary,
+                    letterSpacing: 1,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
