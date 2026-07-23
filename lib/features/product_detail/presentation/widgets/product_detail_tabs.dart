@@ -8,6 +8,7 @@ import 'package:shopify_app/features/reviews/domain/product_reviews_args.dart';
 import 'package:shopify_app/features/reviews/presentation/providers/reviews_providers.dart';
 import 'package:shopify_app/features/reviews/presentation/widgets/review_tile.dart';
 import 'package:shopify_app/features/reviews/presentation/widgets/reviews_summary_card.dart';
+import 'package:shopify_app/features/reviews/presentation/widgets/write_review_cta.dart';
 
 /// Tabbed detail area: Description, an optional Reviews summary, and a
 /// static Shipping & Return policy blurb.
@@ -166,44 +167,58 @@ class _ReviewsTab extends ConsumerWidget {
     );
     if (id == null || id.isEmpty) return aggregate;
 
+    final args = ProductReviewsArgs(
+      productId: id,
+      productTitle: productTitle,
+      averageRating: averageRating,
+      reviewsCount: reviewsCount,
+    );
+
+    // Wraps the tab content with the write-review CTA (and an optional "See
+    // all" link), so shoppers can review even when there are no reviews yet.
+    Widget layout(Widget content, {bool showSeeAll = false}) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        content,
+        if (showSeeAll) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: () =>
+                  context.push(AppRoutes.productReviews, extra: args),
+              child: const Text('See all reviews'),
+            ),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.md),
+        WriteReviewCta(args: args),
+      ],
+    );
+
     return ref
         .watch(reviewsProvider(id))
         .when(
-          loading: () => aggregate,
-          error: (_, _) => aggregate,
+          loading: () => layout(aggregate),
+          error: (_, _) => layout(aggregate),
           data: (data) {
             final preview = data.reviews.take(_previewLimit).toList();
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ReviewsSummaryCard(
-                  reviews: data.reviews,
-                  averageRating: averageRating,
-                  reviewsCount: reviewsCount,
-                ),
-                for (final review in preview) ...[
-                  const SizedBox(height: AppSpacing.md),
-                  ReviewTile(review: review),
-                ],
-                if (data.reviews.length > _previewLimit || data.hasMore) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton(
-                      onPressed: () => context.push(
-                        AppRoutes.productReviews,
-                        extra: ProductReviewsArgs(
-                          productId: id,
-                          productTitle: productTitle,
-                          averageRating: averageRating,
-                          reviewsCount: reviewsCount,
-                        ),
-                      ),
-                      child: const Text('See all reviews'),
-                    ),
+            return layout(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ReviewsSummaryCard(
+                    reviews: data.reviews,
+                    averageRating: averageRating,
+                    reviewsCount: reviewsCount,
                   ),
+                  for (final review in preview) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    ReviewTile(review: review),
+                  ],
                 ],
-              ],
+              ),
+              showSeeAll: data.reviews.length > _previewLimit || data.hasMore,
             );
           },
         );
