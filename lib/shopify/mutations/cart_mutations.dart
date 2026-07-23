@@ -44,9 +44,10 @@ $kCartFragment''';
 /// Replaces the cart's discount codes with [\$discountCodes] (send the full set
 /// each time — it's a replace, not a merge). Shopify echoes each code back with
 /// `applicable`: `false` means invalid or not usable on this cart (unmet
-/// minimum, wrong products, expired). An empty/absent list clears all codes.
+/// minimum, wrong products, expired). An empty list clears all codes. The list
+/// is non-null (`[String!]!`) — pass `[]` to clear, never omit the argument.
 const String kCartDiscountCodesUpdateMutation = '''
-mutation CartDiscountCodesUpdate(\$cartId: ID!, \$discountCodes: [String!]) {
+mutation CartDiscountCodesUpdate(\$cartId: ID!, \$discountCodes: [String!]!) {
   cartDiscountCodesUpdate(cartId: \$cartId, discountCodes: \$discountCodes) {
     cart { ...CartFields }
     userErrors { field message }
