@@ -77,9 +77,12 @@ abstract final class AppRoutes {
 
   /// Full reviews list for a product (pushed full-screen). The
   /// `ProductReviewsArgs` to load is passed as typed `extra`.
-  static const String productReviews = '/product/reviews';
+  ///
+  /// Deliberately NOT under `/product/` — that would collide with the
+  /// `/product/:handle` detail route (`:handle` would capture `reviews`).
+  static const String productReviews = '/reviews';
 
   /// Review submission form (pushed full-screen; requires sign-in). The
   /// `ProductReviewsArgs` for the product is passed as typed `extra`.
-  static const String productReviewWrite = '/product/reviews/write';
+  static const String productReviewWrite = '/reviews/write';
 }
