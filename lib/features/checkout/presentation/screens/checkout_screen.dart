@@ -12,6 +12,7 @@ import 'package:shopify_app/features/cart/presentation/providers/cart_providers.
     show PromoOutcome;
 import 'package:shopify_app/features/checkout/presentation/providers/checkout_providers.dart';
 import 'package:shopify_app/features/checkout/presentation/providers/checkout_state.dart';
+import 'package:shopify_app/features/checkout/presentation/providers/promo_offers_providers.dart';
 import 'package:shopify_app/features/checkout/presentation/widgets/address_book_selector.dart';
 import 'package:shopify_app/features/checkout/presentation/widgets/address_form_sheet.dart';
 import 'package:shopify_app/features/checkout/presentation/widgets/checkout_step_header.dart';
@@ -402,7 +403,7 @@ class _ReviewStep extends ConsumerWidget {
           cart: state.cart,
           showPromo: flags.promoCodesEnabled,
           promoOffers: flags.promoOffersEnabled
-              ? ref.watch(appConfigProvider).promoOffers
+              ? (ref.watch(promoOffersProvider).valueOrNull ?? const [])
               : const [],
           onApplyPromo: (code) => unawaited(_applyPromo(context, ref, code)),
           onRemovePromo: (code) => unawaited(

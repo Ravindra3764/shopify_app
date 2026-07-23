@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:shopify_app/config/promo_offer.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/shopify/models/promo_offer.dart';
 
 /// Surfaces the tenant's advertised promo codes ([offers]) as tappable rows so
 /// a shopper can apply a deal without knowing the code.

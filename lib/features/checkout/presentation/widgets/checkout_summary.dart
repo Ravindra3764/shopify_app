@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shopify_app/config/promo_offer.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/checkout/presentation/widgets/promo_offers_banner.dart';
@@ -7,6 +6,7 @@ import 'package:shopify_app/shared/widgets/custom_button.dart';
 import 'package:shopify_app/shared/widgets/custom_text_box.dart';
 import 'package:shopify_app/shopify/models/cart.dart';
 import 'package:shopify_app/shopify/models/money.dart';
+import 'package:shopify_app/shopify/models/promo_offer.dart';
 
 /// Final order summary: Subtotal / Shipping / Tax / Total, an optional promo
 /// entry, and the Pay call-to-action.
