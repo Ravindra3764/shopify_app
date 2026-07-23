@@ -4,6 +4,19 @@ Guidance for Claude (and developers) working in this repository. Read this befor
 
 ---
 
+## 0. Branching (do this first, always)
+
+**Never work on `main`.** Before starting *any* task — feature, fix, refactor, or docs — create and switch to a related branch off `main`:
+
+```bash
+git checkout main && git pull
+git checkout -b <type>/<short-kebab-desc>   # e.g. feature/promo-offers, fix/cart-zero-total
+```
+
+Branch prefixes: `feature/`, `fix/`, `refactor/`, `chore/`, `docs/`. Do all work and commits on that branch; open a PR into `main`. If you notice work has begun on `main`, branch immediately (uncommitted changes carry over on checkout) before committing.
+
+---
+
 ## 1. Project Overview
 
 - **App**: Multi-tenant, white-label e-commerce app built in Flutter. One codebase, reskinned per client (the "tenant") via configuration — never via per-client code forks.
