@@ -37,7 +37,10 @@ import 'package:shopify_app/shopify/models/order.dart';
 /// Home/Cart/Profile live under a [StatefulShellRoute] so [AppShell]'s
 /// floating bottom nav persists across them, each keeping its own stack;
 /// collection/product-detail push full-screen on top, hiding the nav.
-GoRouter createRouter({bool sheetProductDetail = false}) {
+GoRouter createRouter({
+  bool sheetProductDetail = false,
+  bool searchEnabled = true,
+}) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
     routes: [
@@ -189,6 +192,9 @@ GoRouter createRouter({bool sheetProductDetail = false}) {
       ),
       GoRoute(
         path: AppRoutes.search,
+        // Guard against deep links / stray pushes when search is disabled for
+        // this tenant; the entrypoints are already hidden by the flag.
+        redirect: (context, state) => searchEnabled ? null : AppRoutes.home,
         builder: (context, state) => const SearchScreen(),
       ),
       GoRoute(

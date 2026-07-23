@@ -249,7 +249,9 @@ class _PinnedActions extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(productDetailProvider(handle)).valueOrNull;
-    final wishlistEnabled = ref.watch(featureFlagsProvider).wishlistEnabled;
+    final flags = ref.watch(featureFlagsProvider);
+    final wishlistEnabled = flags.wishlistEnabled;
+    final searchEnabled = flags.searchEnabled;
     final isWishlisted =
         detail != null && ref.watch(isInWishlistProvider(detail.id));
 
@@ -288,11 +290,13 @@ class _PinnedActions extends ConsumerWidget {
               ),
               const SizedBox(width: AppSpacing.sm),
             ],
-            _CircleButton(
-              icon: Icons.search,
-              onPressed: () => context.push(AppRoutes.search),
-            ),
-            const SizedBox(width: AppSpacing.sm),
+            if (searchEnabled) ...[
+              _CircleButton(
+                icon: Icons.search,
+                onPressed: () => context.push(AppRoutes.search),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+            ],
             _CircleButton(
               icon: Icons.ios_share,
               onPressed: () =>
