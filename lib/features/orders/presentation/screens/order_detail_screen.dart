@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/features/reviews/domain/product_reviews_args.dart';
+import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/custom_cached_image.dart';
 import 'package:shopify_app/shopify/models/money.dart';
@@ -107,62 +112,90 @@ class _ItemsCard extends StatelessWidget {
   }
 }
 
-class _LineRow extends StatelessWidget {
+class _LineRow extends ConsumerWidget {
   const _LineRow({required this.line});
 
   final OrderLine line;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
-    return Row(
+    final productId = line.productId;
+    // The shopper bought this in this order, so no purchase gate — just needs
+    // review submission enabled and a resolvable product.
+    final canReview =
+        ref.watch(featureFlagsProvider).reviewSubmissionEnabled &&
+        productId != null &&
+        productId.isNotEmpty;
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CustomCachedImage(
-          imageUrl: line.image?.url ?? '',
-          placeholderName: line.title,
-          height: AppDimensions.orderThumbSize,
-          width: AppDimensions.orderThumbSize,
-          borderRadius: AppDimensions.radiusSm,
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                line.title,
-                style: textTheme.titleSmall?.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              if (line.variantTitle != null) ...[
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  line.variantTitle!,
-                  style: textTheme.bodySmall?.copyWith(
-                    color: AppColors.textTertiary,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CustomCachedImage(
+              imageUrl: line.image?.url ?? '',
+              placeholderName: line.title,
+              height: AppDimensions.orderThumbSize,
+              width: AppDimensions.orderThumbSize,
+              borderRadius: AppDimensions.radiusSm,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    line.title,
+                    style: textTheme.titleSmall?.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                'Qty ${line.quantity}',
-                style: textTheme.bodySmall?.copyWith(
-                  color: AppColors.textTertiary,
+                  if (line.variantTitle != null) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      line.variantTitle!,
+                      style: textTheme.bodySmall?.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Qty ${line.quantity}',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Text(
+              line.lineTotal.formatted,
+              style: textTheme.titleSmall?.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        if (canReview)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => context.push(
+                AppRoutes.productReviewWrite,
+                extra: ProductReviewsArgs(
+                  productId: productId,
+                  productTitle: line.title,
                 ),
               ),
-            ],
+              icon: const Icon(Icons.rate_review_outlined),
+              label: const Text('Write a review'),
+            ),
           ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Text(
-          line.lineTotal.formatted,
-          style: textTheme.titleSmall?.copyWith(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
       ],
     );
   }
