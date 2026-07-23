@@ -131,12 +131,15 @@ mapping/filter/sort/failure, notifier transitions + `loadMore`, `ReviewTile`.
   unpublished-until-moderated + not verified. **Security tradeoff (accepted):**
   the private Judge.me token ships client-side in `.env` — no backend/proxy.
   Tests: Judge.me repo read/submit mapping + failures.
-- **Purchase-gated toggle:** `REVIEW_ONLY_PURCHASED` (default `false`). `true` =
-  only customers who bought a product (it appears in their `customer.orders`
-  line items) may review it — CTA hides for non-purchasers with a note, and the
-  submit path re-checks. `false` = any signed-in shopper. Order line items now
-  carry `variant.product.id`; `purchasedProductIdsProvider` walks order history
-  (capped) into a product-GID set. Tests: purchased-products provider.
+- **Purchase-gated toggle:** `REVIEW_ONLY_PURCHASED` (default `false`).
+  `true` = reviewing is offered **only from My orders** (order detail → each
+  item → "Write a review"); the product-surface CTAs (Reviews tab + reviews
+  screen) are hidden. `false` = any signed-in shopper can review from the
+  product surfaces too. Order detail always shows a per-item "Write a review"
+  (purchase is implicit); the submit path re-checks against
+  `purchasedProductIdsProvider` (walks order history, capped, into a product-GID
+  set) when the toggle is on. Order line items carry `variant.product.id`.
+  Tests: purchased-products provider.
 
 ---
 
