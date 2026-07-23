@@ -23,7 +23,7 @@ _Last updated: 2026-07-23 (Reviews module — read-only — landed on `feature/r
 | Auth | ✅ / ✅ / ✅ | ✅ | 100% |
 | Orders | ✅ / ✅ / ✅ | ✅ | 100% |
 | Profile | ✅ / ✅ / ✅ | ✅ | 100% |
-| Reviews | ✅ / ✅ / ✅ | ✅ | 100% (read-only) |
+| Reviews | ✅ / ✅ / ✅ | ✅ | 100% (read + submit) |
 
 ---
 
@@ -121,11 +121,16 @@ preview + "See all reviews" → `ProductReviewsScreen` (infinite scroll, shimmer
 empty/error states). Behind `REVIEWS_ENABLED`; degrades gracefully (aggregate +
 "No reviews yet") for stores without the metaobject. Tests: repo
 mapping/filter/sort/failure, notifier transitions + `loadMore`, `ReviewTile`.
-- **Submit deferred (pluggable seam):** the Storefront API is read-only, so
-  `ReviewRepository.submitReview` returns a "not configured" `Failure` and
-  `REVIEW_SUBMISSION_ENABLED` defaults `false`. Wire a write provider
-  (Judge.me / Yotpo / app-proxy) to enable the submit form — no presentation
-  changes needed.
+- **Submit — live via Judge.me.** `JudgeMeReviewRepository` (read + write)
+  swaps in when `JUDGEME_SHOP_DOMAIN` + `JUDGEME_API_TOKEN` are set (else falls
+  back to metaobject read-only). Read = `GET api.judge.me/api/v1/reviews`
+  (resolves Shopify GID → Judge.me internal id first); submit =
+  `POST judge.me/api/v1/reviews`. Write-review form (interactive `RatingStars`
+  + title + body) behind `REVIEW_SUBMISSION_ENABLED`, gated to signed-in
+  (reviewer name/email from the customer). Judge.me API reviews are
+  unpublished-until-moderated + not verified. **Security tradeoff (accepted):**
+  the private Judge.me token ships client-side in `.env` — no backend/proxy.
+  Tests: Judge.me repo read/submit mapping + failures.
 
 ---
 
