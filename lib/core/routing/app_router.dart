@@ -22,6 +22,8 @@ import 'package:shopify_app/features/profile/domain/profile_content.dart';
 import 'package:shopify_app/features/profile/presentation/screens/addresses_screen.dart';
 import 'package:shopify_app/features/profile/presentation/screens/content_page_screen.dart';
 import 'package:shopify_app/features/profile/presentation/screens/profile_screen.dart';
+import 'package:shopify_app/features/reviews/domain/product_reviews_args.dart';
+import 'package:shopify_app/features/reviews/presentation/screens/product_reviews_screen.dart';
 import 'package:shopify_app/features/search/presentation/screens/search_screen.dart';
 import 'package:shopify_app/features/splash/presentation/screens/splash_screen.dart';
 import 'package:shopify_app/features/wishlist/presentation/screens/wishlist_screen.dart';
@@ -158,6 +160,17 @@ GoRouter createRouter({bool sheetProductDetail = false}) {
           return order is Order
               ? OrderDetailScreen(order: order)
               : const OrdersScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.productReviews,
+        builder: (context, state) {
+          // The product to load is passed as typed `extra`; a deep link
+          // without it falls back to home.
+          final args = state.extra;
+          return args is ProductReviewsArgs
+              ? ProductReviewsScreen(args: args)
+              : const HomeScreen();
         },
       ),
       GoRoute(

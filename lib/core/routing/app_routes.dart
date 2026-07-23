@@ -74,4 +74,8 @@ abstract final class AppRoutes {
   /// Builds a concrete product-detail location, e.g. `/product/noir-trench`.
   static String productDetailPath(String handle) =>
       '/product/${Uri.encodeComponent(handle)}';
+
+  /// Full reviews list for a product (pushed full-screen). The
+  /// `ProductReviewsArgs` to load is passed as typed `extra`.
+  static const String productReviews = '/product/reviews';
 }
