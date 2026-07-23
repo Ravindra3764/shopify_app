@@ -121,6 +121,10 @@ class _AddressStepState extends ConsumerState<_AddressStep> {
   final List<MailingAddress> _session = [];
   String? _selectedId;
 
+  /// Set when the shopper taps Continue with no address selected; shows an
+  /// inline error by the address section until they pick/add one.
+  bool _showAddressError = false;
+
   @override
   void initState() {
     super.initState();
@@ -158,7 +162,10 @@ class _AddressStepState extends ConsumerState<_AddressStep> {
     } else {
       setState(() => _session.insert(0, address));
     }
-    setState(() => _selectedId = address.id);
+    setState(() {
+      _selectedId = address.id;
+      _showAddressError = false;
+    });
   }
 
   void _delete({required bool bookEnabled, required String id}) {
@@ -171,7 +178,7 @@ class _AddressStepState extends ConsumerState<_AddressStep> {
   }
 
   Future<void> _continue(List<MailingAddress> addresses) async {
-    if (!(_emailKey.currentState?.validate() ?? false)) return;
+    final emailValid = _emailKey.currentState?.validate() ?? false;
     MailingAddress? selected;
     for (final a in addresses) {
       if (a.id == _selectedId) {
@@ -179,14 +186,20 @@ class _AddressStepState extends ConsumerState<_AddressStep> {
         break;
       }
     }
+    // Surface the missing address even if the email is also invalid — it's the
+    // more visible gap on this step (the email field shows its own error).
     if (selected == null) {
+      setState(() => _showAddressError = true);
       showAppSnackBar(
         context,
-        'Please select a delivery address.',
+        addresses.isEmpty
+            ? 'Please add a delivery address to continue.'
+            : 'Please select a delivery address.',
         icon: Icons.location_on_outlined,
       );
       return;
     }
+    if (!emailValid) return;
     await ref
         .read(checkoutProvider.notifier)
         .applyAddress(email: _email.text.trim(), address: selected);
@@ -266,9 +279,33 @@ class _AddressStepState extends ConsumerState<_AddressStep> {
           AddressBookSelector(
             addresses: addresses,
             selectedId: _selectedId,
-            onSelect: (a) => setState(() => _selectedId = a.id),
+            onSelect: (a) => setState(() {
+              _selectedId = a.id;
+              _showAddressError = false;
+            }),
             onDelete: (id) => _delete(bookEnabled: bookEnabled, id: id),
           ),
+        if (_showAddressError && _selectedId == null) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              const Icon(
+                Icons.error_outline,
+                color: AppColors.error,
+                size: AppDimensions.iconSm,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  addresses.isEmpty
+                      ? 'Please add a delivery address to continue.'
+                      : 'Please select a delivery address.',
+                  style: textTheme.bodySmall?.copyWith(color: AppColors.error),
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: AppSpacing.md),
         CustomButton.outline(
           label: 'Add address',
