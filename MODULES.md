@@ -3,7 +3,7 @@
 Living tracker for every feature module. Update the **Status** and **Progress**
 columns as work lands. Legend: ✅ done · 🟡 partial · 🔲 not started.
 
-_Last updated: 2026-07-22 (Checkout verification landed on `checkout-module`)_
+_Last updated: 2026-07-23 (Reviews module — read-only — landed on `feature/reviews-module`)_
 
 ---
 
@@ -23,7 +23,7 @@ _Last updated: 2026-07-22 (Checkout verification landed on `checkout-module`)_
 | Auth | ✅ / ✅ / ✅ | ✅ | 100% |
 | Orders | ✅ / ✅ / ✅ | ✅ | 100% |
 | Profile | ✅ / ✅ / ✅ | ✅ | 100% |
-| Reviews | 🔲 / 🔲 / 🔲 | 🔲 | 0% |
+| Reviews | ✅ / ✅ / ✅ | ✅ | 100% (read-only) |
 
 ---
 
@@ -109,10 +109,23 @@ humanized fulfillment/financial status). Repo + `OrdersNotifier`
 link now routes here (gated to sign-in). Tests: repo mapping + notifier.
 Detail renders from the loaded `Order` (no second fetch).
 
-### 🔲 Reviews — 0%
-Missing. `REVIEWS_ENABLED=false`. Product tabs show placeholder only.
-- Shopify Storefront has no native reviews → metafields or 3rd-party provider.
-- List + submit, `RatingStars` interactive.
+### ✅ Reviews — 100% (read-only)
+Read-first reviews, Storefront-native. Individual reviews read from
+`product_review` **metaobjects** (`metaobjects(type:"product_review")`), matched
+to the product by its `product` reference field and sorted newest-first; the
+store's aggregate `reviews.rating` / `reviews.rating_count` metafields still
+feed the summary. Repo + `Result`/`Failure` + `ReviewsNotifier`
+(`AutoDisposeFamilyAsyncNotifier`, keyed by product GID, `loadMore`). Product
+Reviews tab shows a summary card (avg + 5→1 distribution bars) + a 3-review
+preview + "See all reviews" → `ProductReviewsScreen` (infinite scroll, shimmer,
+empty/error states). Behind `REVIEWS_ENABLED`; degrades gracefully (aggregate +
+"No reviews yet") for stores without the metaobject. Tests: repo
+mapping/filter/sort/failure, notifier transitions + `loadMore`, `ReviewTile`.
+- **Submit deferred (pluggable seam):** the Storefront API is read-only, so
+  `ReviewRepository.submitReview` returns a "not configured" `Failure` and
+  `REVIEW_SUBMISSION_ENABLED` defaults `false`. Wire a write provider
+  (Judge.me / Yotpo / app-proxy) to enable the submit form — no presentation
+  changes needed.
 
 ---
 
@@ -122,5 +135,5 @@ Missing. `REVIEWS_ENABLED=false`. Product tabs show placeholder only.
 2. ~~**Profile**~~ ✅ done — policies live, My-orders link wired.
 3. ~~**Orders**~~ ✅ done — `customer.orders` list + detail.
 4. ~~**Checkout verification**~~ ✅ done — polls `customer.orders` post-payment.
-5. **Reviews** (next / last) — needs data-source decision (metafields vs
-   3rd-party) before build.
+5. ~~**Reviews**~~ ✅ done — read-only via `product_review` metaobjects; submit
+   is a pluggable seam pending a tenant's write-provider choice.
