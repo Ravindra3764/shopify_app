@@ -149,7 +149,7 @@ class _ReviewsTab extends ConsumerWidget {
   });
 
   /// How many reviews to preview inline before "See all".
-  static const _previewLimit = 3;
+  static const _previewLimit = 2;
 
   final String? productId;
   final String productTitle;
