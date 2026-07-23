@@ -131,6 +131,12 @@ mapping/filter/sort/failure, notifier transitions + `loadMore`, `ReviewTile`.
   unpublished-until-moderated + not verified. **Security tradeoff (accepted):**
   the private Judge.me token ships client-side in `.env` — no backend/proxy.
   Tests: Judge.me repo read/submit mapping + failures.
+- **Purchase-gated toggle:** `REVIEW_ONLY_PURCHASED` (default `false`). `true` =
+  only customers who bought a product (it appears in their `customer.orders`
+  line items) may review it — CTA hides for non-purchasers with a note, and the
+  submit path re-checks. `false` = any signed-in shopper. Order line items now
+  carry `variant.product.id`; `purchasedProductIdsProvider` walks order history
+  (capped) into a product-GID set. Tests: purchased-products provider.
 
 ---
 
