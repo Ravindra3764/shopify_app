@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/features/product_detail/presentation/widgets/product_gallery_viewer.dart';
 import 'package:shopify_app/shared/widgets/custom_cached_image.dart';
 import 'package:shopify_app/shopify/models/shopify_image.dart';
 
@@ -92,11 +93,22 @@ class _ProductImageGalleryState extends State<ProductImageGallery> {
             controller: _controller,
             onPageChanged: (i) => setState(() => _page = i),
             itemCount: images.isEmpty ? 1 : images.length,
-            itemBuilder: (context, i) => CustomCachedImage(
-              imageUrl: images.isEmpty ? '' : images[i].url,
-              placeholderName: widget.placeholderName,
-              backgroundColor: AppColors.surface,
-              fit: BoxFit.contain,
+            itemBuilder: (context, i) => GestureDetector(
+              // Tap opens the fullscreen pinch-to-zoom viewer at this image.
+              onTap: images.isEmpty
+                  ? null
+                  : () => ProductGalleryViewer.open(
+                      context,
+                      images: images,
+                      initialIndex: i,
+                      placeholderName: widget.placeholderName,
+                    ),
+              child: CustomCachedImage(
+                imageUrl: images.isEmpty ? '' : images[i].url,
+                placeholderName: widget.placeholderName,
+                backgroundColor: AppColors.surface,
+                fit: BoxFit.contain,
+              ),
             ),
           ),
           if (widget.showFloatingActions)
