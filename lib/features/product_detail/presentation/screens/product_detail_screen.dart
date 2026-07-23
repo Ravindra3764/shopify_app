@@ -313,6 +313,8 @@ class _ProductInfo extends StatelessWidget {
         _SectionCard(
           child: ProductDetailTabs(
             description: detail.description ?? '',
+            productId: detail.id,
+            productTitle: detail.title,
             showReviewsTab: featureFlags.reviewsEnabled,
             averageRating: detail.averageRating,
             reviewsCount: detail.reviewsCount,

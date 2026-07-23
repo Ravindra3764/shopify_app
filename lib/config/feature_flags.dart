@@ -13,6 +13,8 @@ class FeatureFlags {
     this.wishlistDoubleTapHintEnabled = true,
     this.wishlistHintAlways = false,
     this.productDetailSheetEnabled = false,
+    this.reviewSubmissionEnabled = false,
+    this.reviewOnlyPurchased = false,
   });
 
   /// Reads flags from `.env` string values (`"true"` / `"false"`).
@@ -48,6 +50,11 @@ class FeatureFlags {
         'PRODUCT_DETAIL_SHEET_ENABLED',
         fallback: false,
       ),
+      reviewSubmissionEnabled: flag(
+        'REVIEW_SUBMISSION_ENABLED',
+        fallback: false,
+      ),
+      reviewOnlyPurchased: flag('REVIEW_ONLY_PURCHASED', fallback: false),
     );
   }
 
@@ -84,4 +91,14 @@ class FeatureFlags {
   /// (partial preview that expands to full, horizontal-swipe between the
   /// siblings you came from); `false` uses the classic full-page detail.
   final bool productDetailSheetEnabled;
+
+  /// Whether shoppers can submit a review from the app. Requires a write-
+  /// capable review provider (the Storefront API is read-only); defaults to
+  /// `false` until a tenant wires one in.
+  final bool reviewSubmissionEnabled;
+
+  /// When `true`, only customers who purchased a product (it appears in one of
+  /// their orders) may review it; when `false`, any signed-in shopper can
+  /// review any product. Only meaningful when [reviewSubmissionEnabled].
+  final bool reviewOnlyPurchased;
 }

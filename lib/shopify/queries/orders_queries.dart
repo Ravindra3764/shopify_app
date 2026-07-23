@@ -45,6 +45,7 @@ query CustomerOrders($token: String!, $first: Int!, $after: String) {
                 variant {
                   title
                   image { url altText width height }
+                  product { id }
                 }
               }
             }

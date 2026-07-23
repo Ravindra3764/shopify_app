@@ -18,6 +18,8 @@ class AppConfig {
     this.popularSearches = const [],
     this.aboutPageHandle,
     this.helpPageHandle,
+    this.judgeMeShopDomain,
+    this.judgeMeApiToken,
   });
 
   factory AppConfig.fromEnv(Map<String, String> env) {
@@ -62,6 +64,11 @@ class AppConfig {
       // Profile → More. Null when the tenant has no such page → tile hidden.
       aboutPageHandle: optional('ABOUT_PAGE_HANDLE'),
       helpPageHandle: optional('HELP_PAGE_HANDLE'),
+      // Judge.me review provider. When both are set, reviews (read + submit)
+      // route to Judge.me; otherwise reviews fall back to Storefront
+      // `product_review` metaobjects (read-only).
+      judgeMeShopDomain: optional('JUDGEME_SHOP_DOMAIN'),
+      judgeMeApiToken: optional('JUDGEME_API_TOKEN'),
     );
   }
 
@@ -97,4 +104,18 @@ class AppConfig {
   /// Handle of the Online Store "Help & support" page (Profile → More). Null
   /// when the tenant hasn't published one — the Help tile is then hidden.
   final String? helpPageHandle;
+
+  /// Judge.me shop domain (e.g. `acme.myshopify.com`). Null disables the
+  /// Judge.me review provider (reviews then use Storefront metaobjects).
+  final String? judgeMeShopDomain;
+
+  /// Judge.me **private** API token. WARNING: privileged (read/write to all
+  /// review data) and shipped in the client by tenant choice — treat as
+  /// exposed. Null disables the Judge.me review provider.
+  final String? judgeMeApiToken;
+
+  /// Whether the Judge.me review provider is fully configured.
+  bool get hasJudgeMe =>
+      (judgeMeShopDomain?.isNotEmpty ?? false) &&
+      (judgeMeApiToken?.isNotEmpty ?? false);
 }

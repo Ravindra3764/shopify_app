@@ -21,6 +21,7 @@ abstract final class AppDimensions {
   static const double buttonHeight = 52;
   static const double iconSm = 16;
   static const double iconMd = 24;
+  static const double iconLg = 32;
 
   static const double retryButtonWidth = 160;
 
