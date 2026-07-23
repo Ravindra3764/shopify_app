@@ -1,13 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shopify_app/features/reviews/data/judgeme_client.dart';
+import 'package:shopify_app/features/reviews/data/judgeme_review_repository.dart';
 import 'package:shopify_app/features/reviews/data/review_repository_impl.dart';
 import 'package:shopify_app/features/reviews/domain/review_repository.dart';
+import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/providers/shopify_providers.dart';
 import 'package:shopify_app/shopify/models/product_review.dart';
 
-/// Review repository, wired to the Storefront `ApiClient`.
-final reviewRepositoryProvider = Provider<ReviewRepository>(
-  (ref) => ReviewRepositoryImpl(ref.watch(apiClientProvider)),
-);
+/// Review repository. Uses Judge.me (read + submit) when the tenant configures
+/// it, otherwise reads Storefront `product_review` metaobjects (read-only).
+final reviewRepositoryProvider = Provider<ReviewRepository>((ref) {
+  final config = ref.watch(appConfigProvider);
+  if (config.hasJudgeMe) {
+    return JudgeMeReviewRepository(
+      JudgeMeClient(
+        shopDomain: config.judgeMeShopDomain!,
+        apiToken: config.judgeMeApiToken!,
+      ),
+    );
+  }
+  return ReviewRepositoryImpl(ref.watch(apiClientProvider));
+});
 
 /// How many reviews to fetch per page.
 const _pageSize = 20;
@@ -47,9 +60,8 @@ class ReviewsState {
 /// A product's reviews, keyed by product GID. Rethrows `Failure` for
 /// `AsyncValue.error`. Call [ReviewsNotifier.loadMore] to append the next
 /// page. Auto-disposes with its last listener.
-final reviewsProvider =
-    AsyncNotifierProvider.autoDispose
-        .family<ReviewsNotifier, ReviewsState, String>(ReviewsNotifier.new);
+final reviewsProvider = AsyncNotifierProvider.autoDispose
+    .family<ReviewsNotifier, ReviewsState, String>(ReviewsNotifier.new);
 
 /// Loads and paginates reviews for one product.
 class ReviewsNotifier

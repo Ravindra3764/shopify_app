@@ -42,10 +42,9 @@ class ReviewRepositoryImpl implements ReviewRepository {
       );
       // The Storefront `metaobjects` connection can't filter by field, so keep
       // only reviews whose `product` reference matches this product.
-      final reviews = all
-          .where((review) => review.productRef == productId)
-          .toList()
-        ..sort(_newestFirst);
+      final reviews =
+          all.where((review) => review.productRef == productId).toList()
+            ..sort(_newestFirst);
       final pageInfo = parseMap(connection, 'pageInfo', model: _model);
       return Success(
         ReviewsPage(

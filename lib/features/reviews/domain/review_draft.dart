@@ -9,6 +9,8 @@ class ReviewDraft {
     required this.rating,
     this.title,
     this.body,
+    this.reviewerName,
+    this.reviewerEmail,
   });
 
   /// The reviewed product's GID.
@@ -19,4 +21,9 @@ class ReviewDraft {
 
   final String? title;
   final String? body;
+
+  /// Reviewer identity, required by write providers (e.g. Judge.me). Populated
+  /// from the signed-in customer at submit time.
+  final String? reviewerName;
+  final String? reviewerEmail;
 }
