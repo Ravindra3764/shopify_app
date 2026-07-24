@@ -9,6 +9,9 @@ abstract final class AppRoutes {
   /// Home route.
   static const String home = '/home';
 
+  /// Browse tab route (collection chips + product feed).
+  static const String browse = '/browse';
+
   /// Cart tab route.
   static const String cart = '/cart';
 

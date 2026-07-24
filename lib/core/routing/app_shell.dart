@@ -18,6 +18,11 @@ class AppShell extends ConsumerWidget {
         activeIcon: Icons.home,
         label: 'Home',
       ),
+      const FloatingNavItem(
+        icon: Icons.grid_view_outlined,
+        activeIcon: Icons.grid_view,
+        label: 'Shop',
+      ),
       FloatingNavItem(
         icon: Icons.shopping_bag_outlined,
         activeIcon: Icons.shopping_bag,
