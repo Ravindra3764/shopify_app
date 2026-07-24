@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
-import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/product_detail/presentation/product_navigation.dart';
 import 'package:shopify_app/features/wishlist/presentation/providers/wishlist_providers.dart';
-import 'package:shopify_app/features/wishlist/presentation/widgets/wishlist_product_card.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/empty_state_view.dart';
+import 'package:shopify_app/shared/widgets/product_feed.dart';
 
 /// The shopper's saved products. Local-only for now; hearts toggle from here,
 /// the home header, cards, and the product-detail gallery all stay in sync via
@@ -32,21 +31,9 @@ class WishlistScreen extends ConsumerWidget {
               actionLabel: 'Start shopping',
               onAction: () => context.go(AppRoutes.home),
             )
-          : GridView.builder(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              itemCount: products.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: AppSpacing.lg,
-                crossAxisSpacing: AppSpacing.md,
-                mainAxisExtent: AppDimensions.productCardHeight,
-              ),
-              itemBuilder: (context, i) {
-                return WishlistProductCard(
-                  product: products[i],
-                  onTap: () => openProductFromList(context, products, i),
-                );
-              },
+          : ProductFeed(
+              products: products,
+              onTapIndex: (i) => openProductFromList(context, products, i),
             ),
     );
   }

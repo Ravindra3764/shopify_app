@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:shopify_app/config/product_grid_style.dart';
 import 'package:shopify_app/core/error/failure.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/core/utils/product_layout.dart';
 import 'package:shopify_app/features/product_detail/presentation/product_navigation.dart';
 import 'package:shopify_app/features/search/domain/search_filters.dart';
 import 'package:shopify_app/features/search/presentation/providers/search_providers.dart';
 import 'package:shopify_app/features/search/presentation/widgets/search_filter_sheet.dart';
 import 'package:shopify_app/features/search/presentation/widgets/search_initial_view.dart';
 import 'package:shopify_app/features/wishlist/presentation/widgets/wishlist_product_card.dart';
+import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/custom_text_box.dart';
 import 'package:shopify_app/shared/widgets/empty_state_view.dart';
@@ -119,7 +123,11 @@ class _SearchBody extends ConsumerWidget {
                   onLoadMore: () =>
                       ref.read(searchResultsProvider.notifier).loadMore(),
                 ),
-          loading: () => const LoadingShimmer.grid(),
+          loading: () =>
+              ref.watch(appConfigProvider).productGridStyle ==
+                  ProductGridStyle.masonry
+              ? const LoadingShimmer.masonry()
+              : const LoadingShimmer.grid(),
           error: (e, _) => ErrorView(
             message: e is Failure ? e.message : 'Something went wrong.',
             onRetry: () => ref.invalidate(searchResultsProvider),
@@ -128,7 +136,7 @@ class _SearchBody extends ConsumerWidget {
   }
 }
 
-class _ResultsGrid extends StatelessWidget {
+class _ResultsGrid extends ConsumerWidget {
   const _ResultsGrid({required this.results, required this.onLoadMore});
 
   final SearchResults results;
@@ -138,8 +146,11 @@ class _ResultsGrid extends StatelessWidget {
   static const _prefetchExtent = 400.0;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final products = results.items;
+    final masonry =
+        ref.watch(appConfigProvider).productGridStyle ==
+        ProductGridStyle.masonry;
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
         final m = notification.metrics;
@@ -154,20 +165,33 @@ class _ResultsGrid extends StatelessWidget {
         slivers: [
           SliverPadding(
             padding: const EdgeInsets.all(AppSpacing.md),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: AppSpacing.lg,
-                crossAxisSpacing: AppSpacing.md,
-                mainAxisExtent: AppDimensions.productCardHeight,
-              ),
-              delegate: SliverChildBuilderDelegate((context, i) {
-                return WishlistProductCard(
-                  product: products[i],
-                  onTap: () => openProductFromList(context, products, i),
-                );
-              }, childCount: products.length),
-            ),
+            sliver: masonry
+                ? SliverMasonryGrid.count(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: AppSpacing.md,
+                    crossAxisSpacing: AppSpacing.md,
+                    childCount: products.length,
+                    itemBuilder: (context, i) => WishlistProductCard(
+                      product: products[i],
+                      imageAspectRatio: productMasonryAspectRatio(products[i]),
+                      onTap: () => openProductFromList(context, products, i),
+                    ),
+                  )
+                : SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: AppSpacing.lg,
+                          crossAxisSpacing: AppSpacing.md,
+                          mainAxisExtent: AppDimensions.productCardHeight,
+                        ),
+                    delegate: SliverChildBuilderDelegate((context, i) {
+                      return WishlistProductCard(
+                        product: products[i],
+                        onTap: () => openProductFromList(context, products, i),
+                      );
+                    }, childCount: products.length),
+                  ),
           ),
           if (results.loadingMore)
             const SliverToBoxAdapter(
