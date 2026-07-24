@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/providers/config_providers.dart';
+import 'package:shopify_app/shared/providers/product_swatch_provider.dart';
 import 'package:shopify_app/shared/widgets/custom_cached_image.dart';
 import 'package:shopify_app/shared/widgets/price_tag.dart';
 import 'package:shopify_app/shopify/models/product.dart';
 
-class ProductCard extends StatelessWidget {
+class ProductCard extends ConsumerWidget {
   const ProductCard({
     required this.product,
     super.key,
@@ -25,10 +28,10 @@ class ProductCard extends StatelessWidget {
 
   final double? width;
 
-  /// Image aspect ratio (width / height). When set, the image fills a box of
-  /// this ratio (`BoxFit.cover`) so cards vary in height — the masonry look.
-  /// When `null`, the image sits in a square tile (`BoxFit.contain`) — the
-  /// standard uniform grid.
+  /// Image aspect ratio (width / height). When set, the panel takes this ratio
+  /// so cards vary in height — the masonry look. `null` → a square tile (the
+  /// standard uniform grid). Either way the product sits `contain`ed on a
+  /// color panel sampled from the image (see [productSwatchProvider]).
   final double? imageAspectRatio;
 
   /// Whether the wishlist heart renders filled. Ignored when
@@ -39,13 +42,30 @@ class ProductCard extends StatelessWidget {
   /// for tenants with the wishlist feature disabled.
   final VoidCallback? onWishlistToggle;
 
+  /// Cross-fade when the sampled panel color resolves from its fallback.
+  static const _panelFadeDuration = Duration(milliseconds: 350);
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final soldOut = !product.availableForSale;
-    // Masonry cards fill a ratio-driven box (cover); standard cards letterbox
-    // the image inside a square tile (contain) on the surface color.
+    final imageUrl = product.featuredImage?.url ?? '';
+    final tintEnabled = ref.watch(featureFlagsProvider).cardImageTintEnabled;
     final isMasonry = imageAspectRatio != null;
+
+    // Tinted look: panel color sampled from the image, product `contain`ed on
+    // it with a little breathing room. Otherwise the flat look: masonry goes
+    // full-bleed `cover`, standard `contain`s on the surface color.
+    final tinted = tintEnabled && imageUrl.isNotEmpty;
+    final panelColor = tinted
+        ? ref
+              .watch(productSwatchProvider(imageUrl))
+              .maybeWhen(data: (c) => c, orElse: () => AppColors.surface)
+        : AppColors.surface;
+    final imageFit = tinted || !isMasonry ? BoxFit.contain : BoxFit.cover;
+    final imagePadding = tinted
+        ? const EdgeInsets.all(AppSpacing.sm)
+        : EdgeInsets.zero;
 
     return GestureDetector(
       onTap: onTap,
@@ -55,9 +75,11 @@ class ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DecoratedBox(
+            AnimatedContainer(
+              duration: _panelFadeDuration,
+              curve: Curves.easeOut,
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: panelColor,
                 borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
                 boxShadow: [
                   BoxShadow(
@@ -67,29 +89,33 @@ class ProductCard extends StatelessWidget {
                   ),
                 ],
               ),
-              child: AspectRatio(
-                aspectRatio: imageAspectRatio ?? 1,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    CustomCachedImage(
-                      fit: isMasonry ? BoxFit.cover : BoxFit.contain,
-                      imageUrl: product.featuredImage?.url ?? '',
-                      placeholderName: product.title,
-                      borderRadius: AppDimensions.cardRadius,
-                      backgroundColor: isMasonry ? null : AppColors.surface,
-                    ),
-                    if (soldOut) const _SoldOutBadge(),
-                    if (onWishlistToggle != null)
-                      Positioned(
-                        top: AppSpacing.sm,
-                        right: AppSpacing.sm,
-                        child: _WishlistHeart(
-                          isWishlisted: isWishlisted,
-                          onTap: onWishlistToggle!,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
+                child: AspectRatio(
+                  aspectRatio: imageAspectRatio ?? 1,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Padding(
+                        padding: imagePadding,
+                        child: CustomCachedImage(
+                          fit: imageFit,
+                          imageUrl: imageUrl,
+                          placeholderName: product.title,
                         ),
                       ),
-                  ],
+                      if (soldOut) const _SoldOutBadge(),
+                      if (onWishlistToggle != null)
+                        Positioned(
+                          top: AppSpacing.sm,
+                          right: AppSpacing.sm,
+                          child: _WishlistHeart(
+                            isWishlisted: isWishlisted,
+                            onTap: onWishlistToggle!,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
