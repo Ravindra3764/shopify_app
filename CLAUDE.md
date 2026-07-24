@@ -17,6 +17,18 @@ Branch prefixes: `feature/`, `fix/`, `refactor/`, `chore/`, `docs/`. Do all work
 
 ---
 
+## 0.1 Before any feature: ask if it should be env-managed
+
+This is a white-label app — behavior and look vary per tenant through `.env` (§3).
+**Before implementing any user-facing feature or visible change, ask the user whether
+it should be tenant-configurable via `.env`** (a `FeatureFlags` toggle or an `AppConfig`
+value), or hardcoded. Don't assume. If yes, add the flag/config first (fail-fast parsing,
+sensible default so existing tenant `.env` files keep working) and branch the behavior on
+it — never on tenant name. Confirm the default (on/off) too. Only skip the question for
+pure bug fixes and internal refactors with no tenant-visible behavior change.
+
+---
+
 ## 1. Project Overview
 
 - **App**: Multi-tenant, white-label e-commerce app built in Flutter. One codebase, reskinned per client (the "tenant") via configuration — never via per-client code forks.
