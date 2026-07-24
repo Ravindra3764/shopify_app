@@ -1,4 +1,5 @@
 import 'package:shopify_app/config/feature_flags.dart';
+import 'package:shopify_app/config/product_grid_style.dart';
 
 class AppConfig {
   const AppConfig({
@@ -12,6 +13,7 @@ class AppConfig {
     required this.accentColorHex,
     required this.logoAsset,
     required this.features,
+    this.productGridStyle = ProductGridStyle.standard,
     this.defaultCountry = 'US',
     this.wishlistHintText =
         'Double-tap any product to save it to your wishlist.',
@@ -47,6 +49,8 @@ class AppConfig {
       accentColorHex: required('ACCENT_COLOR'),
       logoAsset: required('LOGO_ASSET'),
       features: FeatureFlags.fromEnv(env),
+      // Product grid look: standard fixed grid vs masonry waterfall feed.
+      productGridStyle: ProductGridStyle.fromEnv(env['PRODUCT_GRID_STYLE']),
       // Home country (ISO code) prefilled on the checkout address form.
       defaultCountry: (env['DEFAULT_COUNTRY'] ?? 'US').trim().toUpperCase(),
       // Onboarding hint copy; falls back to the default when unset/blank.
@@ -85,6 +89,10 @@ class AppConfig {
 
   final String logoAsset;
   final FeatureFlags features;
+
+  /// How product grids render app-wide (standard grid vs masonry waterfall).
+  /// Per-tenant via `PRODUCT_GRID_STYLE`.
+  final ProductGridStyle productGridStyle;
 
   /// Tenant home country as an ISO 3166-1 alpha-2 code (e.g. `US`, `IN`).
   /// Prefilled as the country on the checkout address form.

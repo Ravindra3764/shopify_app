@@ -15,23 +15,34 @@ class WishlistProductCard extends ConsumerWidget {
     super.key,
     this.onTap,
     this.width,
+    this.imageAspectRatio,
   });
 
   final Product product;
   final VoidCallback? onTap;
   final double? width;
 
+  /// Image aspect ratio (width / height) forwarded to [ProductCard] for the
+  /// masonry look; `null` renders the standard square tile.
+  final double? imageAspectRatio;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final enabled = ref.watch(featureFlagsProvider).wishlistEnabled;
     if (!enabled) {
-      return ProductCard(product: product, onTap: onTap, width: width);
+      return ProductCard(
+        product: product,
+        onTap: onTap,
+        width: width,
+        imageAspectRatio: imageAspectRatio,
+      );
     }
 
     final isWishlisted = ref.watch(isInWishlistProvider(product.id));
     return ProductCard(
       product: product,
       width: width,
+      imageAspectRatio: imageAspectRatio,
       onTap: onTap,
       isWishlisted: isWishlisted,
       onWishlistToggle: () =>

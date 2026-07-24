@@ -9,11 +9,7 @@ import 'package:shopify_app/core/utils/json_parse.dart';
 /// paired with a human [label] and an optional [minSubtotal] gate so we only
 /// advertise codes the current cart can actually use.
 class PromoOffer {
-  const PromoOffer({
-    required this.code,
-    required this.label,
-    this.minSubtotal,
-  });
+  const PromoOffer({required this.code, required this.label, this.minSubtotal});
 
   /// Builds from a `promo_offer` metaobject node whose fields were aliased in
   /// the query as `code`, `label`, and `minSubtotal` (each `{ value }`, or

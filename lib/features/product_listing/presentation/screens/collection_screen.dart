@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shopify_app/config/product_grid_style.dart';
 import 'package:shopify_app/core/error/failure.dart';
-import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/product_detail/presentation/product_navigation.dart';
 import 'package:shopify_app/features/product_listing/presentation/providers/collection_providers.dart';
-import 'package:shopify_app/features/wishlist/presentation/widgets/wishlist_product_card.dart';
+import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/empty_state_view.dart';
 import 'package:shopify_app/shared/widgets/error_view.dart';
 import 'package:shopify_app/shared/widgets/loading_shimmer.dart';
+import 'package:shopify_app/shared/widgets/product_feed.dart';
 import 'package:shopify_app/shared/widgets/pull_to_refresh.dart';
 import 'package:shopify_app/shopify/models/product.dart';
 
@@ -39,7 +40,11 @@ class CollectionScreen extends ConsumerWidget {
       child: async.when(
         data: (collection) =>
             _Grid(products: collection.products, onRefresh: refresh),
-        loading: () => const LoadingShimmer.grid(),
+        loading: () =>
+            ref.watch(appConfigProvider).productGridStyle ==
+                ProductGridStyle.masonry
+            ? const LoadingShimmer.masonry()
+            : const LoadingShimmer.grid(),
         error: (e, _) => ErrorView(
           message: e is Failure ? e.message : 'Something went wrong.',
           onRetry: () => ref.invalidate(collectionProvider(handle)),
@@ -69,23 +74,9 @@ class _Grid extends StatelessWidget {
     }
     return PullToRefresh(
       onRefresh: onRefresh,
-      child: GridView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(AppSpacing.md),
-        itemCount: products.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          mainAxisSpacing: AppSpacing.lg,
-          crossAxisSpacing: AppSpacing.md,
-          mainAxisExtent: AppDimensions.productCardHeight,
-        ),
-        itemBuilder: (context, i) {
-          final product = products[i];
-          return WishlistProductCard(
-            product: product,
-            onTap: () => openProductFromList(context, products, i),
-          );
-        },
+      child: ProductFeed(
+        products: products,
+        onTapIndex: (i) => openProductFromList(context, products, i),
       ),
     );
   }

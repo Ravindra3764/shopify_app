@@ -31,8 +31,9 @@ class PromoOffersRepositoryImpl implements PromoOffersRepository {
         'edges',
         model: _model,
         fromItem: (item) {
-          final edge =
-              item is Map<String, dynamic> ? item : <String, dynamic>{};
+          final edge = item is Map<String, dynamic>
+              ? item
+              : <String, dynamic>{};
           return PromoOffer.fromJson(parseMap(edge, 'node', model: _model));
         },
       );

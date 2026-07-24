@@ -1,5 +1,20 @@
 // GraphQL documents for collections.
 
+/// Fetches the storefront collections (handle + title only) — backs the
+/// collection chip bar on the browse screen.
+const String kCollectionsListQuery = r'''
+query CollectionsList($first: Int!) {
+  collections(first: $first) {
+    edges {
+      node {
+        handle
+        title
+      }
+    }
+  }
+}
+''';
+
 /// Fetches a single collection (by handle) with a page of its products —
 /// backs the "View All" product grid.
 const String kCollectionProductsQuery = r'''
