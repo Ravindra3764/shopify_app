@@ -518,6 +518,16 @@ flutter build ipa    --flavor <flavor> --dart-define-from-file=config/flavors/<f
 3. Tests added/updated and `flutter test` green.
 4. No hardcoded colors/spacing/text styles, no business logic in widgets, no direct GraphQL outside repositories.
 
+### Commit granularity — commit small, self-contained modules
+
+**Do not batch a whole feature into one giant commit.** Commit each coherent unit
+as soon as it stands on its own and `flutter analyze` is clean — e.g. a config key +
+its parsing, a new model + query, a shared widget, a screen wiring, a nav change.
+Each commit should build and be revertable in isolation. Prefer several small,
+well-scoped commits over one large one, so history reads as a sequence of modules and
+any single change can be reverted without unpicking unrelated work. Conventional-commit
+subjects (`feat:`, `fix:`, `refactor:`, `chore:`, `docs:`), plain and imperative.
+
 ---
 
 ## Dependencies
@@ -531,6 +541,7 @@ dependencies:
   dio: ^5.7.0            # Storefront GraphQL transport (ApiClient)
   flutter_dotenv: ^5.2.1 # tenant .env loading
   flutter_svg: ^2.3.0
+  flutter_staggered_grid_view: ^0.7.0 # masonry product feed (PRODUCT_GRID_STYLE)
   intl: ^0.19.0
 
 dev_dependencies:
