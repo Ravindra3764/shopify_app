@@ -16,6 +16,7 @@ class FeatureFlags {
     this.productDetailSheetEnabled = false,
     this.reviewSubmissionEnabled = false,
     this.reviewOnlyPurchased = false,
+    this.cardImageTintEnabled = true,
   });
 
   /// Reads flags from `.env` string values (`"true"` / `"false"`).
@@ -60,6 +61,7 @@ class FeatureFlags {
         fallback: false,
       ),
       reviewOnlyPurchased: flag('REVIEW_ONLY_PURCHASED', fallback: false),
+      cardImageTintEnabled: flag('PRODUCT_CARD_TINT_ENABLED', fallback: true),
     );
   }
 
@@ -111,4 +113,10 @@ class FeatureFlags {
   /// their orders) may review it; when `false`, any signed-in shopper can
   /// review any product. Only meaningful when [reviewSubmissionEnabled].
   final bool reviewOnlyPurchased;
+
+  /// When `true`, product cards tint their panel with a color sampled from the
+  /// product image (Pinterest-style) and `contain` the photo on it. When
+  /// `false`, cards use the flat surface fill (masonry cards go full-bleed
+  /// `cover`, standard cards `contain` on surface).
+  final bool cardImageTintEnabled;
 }
