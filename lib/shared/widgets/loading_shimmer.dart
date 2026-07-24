@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 
@@ -15,6 +16,10 @@ class LoadingShimmer extends StatelessWidget {
 
   /// Product grid skeleton: a 2-column grid of card placeholders.
   const LoadingShimmer.grid({Key? key}) : this._(_gridLayout, key: key);
+
+  /// Masonry feed skeleton: a 2-column staggered grid of varied-height cards,
+  /// mirroring the waterfall product feed.
+  const LoadingShimmer.masonry({Key? key}) : this._(_masonryLayout, key: key);
 
   /// Product-detail skeleton: gallery + title/price/options blocks.
   const LoadingShimmer.productDetail({Key? key})
@@ -72,6 +77,23 @@ class LoadingShimmer extends StatelessWidget {
         mainAxisExtent: AppDimensions.productCardHeight,
       ),
       itemBuilder: (_, _) => const _Box(),
+    );
+  }
+
+  static Widget _masonryLayout(BuildContext context) {
+    // Alternating card heights approximate the staggered feed without any
+    // magic numbers (both extents come from AppDimensions).
+    const heights = [
+      AppDimensions.productImageHeight,
+      AppDimensions.productCardHeight,
+    ];
+    return MasonryGridView.count(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      crossAxisCount: 2,
+      mainAxisSpacing: AppSpacing.md,
+      crossAxisSpacing: AppSpacing.md,
+      itemCount: 6,
+      itemBuilder: (_, i) => _Box(height: heights[i % heights.length]),
     );
   }
 

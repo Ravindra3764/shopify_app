@@ -12,6 +12,7 @@ class ProductCard extends StatelessWidget {
     this.onTap,
     this.onDoubleTap,
     this.width,
+    this.imageAspectRatio,
     this.isWishlisted = false,
     this.onWishlistToggle,
   });
@@ -23,6 +24,12 @@ class ProductCard extends StatelessWidget {
   final VoidCallback? onDoubleTap;
 
   final double? width;
+
+  /// Image aspect ratio (width / height). When set, the image fills a box of
+  /// this ratio (`BoxFit.cover`) so cards vary in height — the masonry look.
+  /// When `null`, the image sits in a square tile (`BoxFit.contain`) — the
+  /// standard uniform grid.
+  final double? imageAspectRatio;
 
   /// Whether the wishlist heart renders filled. Ignored when
   /// [onWishlistToggle] is `null` (no heart shown).
@@ -36,6 +43,9 @@ class ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final soldOut = !product.availableForSale;
+    // Masonry cards fill a ratio-driven box (cover); standard cards letterbox
+    // the image inside a square tile (contain) on the surface color.
+    final isMasonry = imageAspectRatio != null;
 
     return GestureDetector(
       onTap: onTap,
@@ -46,16 +56,16 @@ class ProductCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AspectRatio(
-              aspectRatio: 1,
+              aspectRatio: imageAspectRatio ?? 1,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
                   CustomCachedImage(
-                    fit: BoxFit.contain,
+                    fit: isMasonry ? BoxFit.cover : BoxFit.contain,
                     imageUrl: product.featuredImage?.url ?? '',
                     placeholderName: product.title,
                     borderRadius: AppDimensions.cardRadius,
-                    backgroundColor: AppColors.surface,
+                    backgroundColor: isMasonry ? null : AppColors.surface,
                   ),
                   if (soldOut) const _SoldOutBadge(),
                   if (onWishlistToggle != null)
