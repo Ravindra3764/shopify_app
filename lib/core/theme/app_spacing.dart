@@ -62,6 +62,10 @@ abstract final class AppDimensions {
   static const double floatingNavShadowBlur = 20;
   static const double floatingNavShadowOffsetY = 8;
 
+  /// Soft drop shadow under product cards so they lift off the background.
+  static const double cardShadowBlur = 12;
+  static const double cardShadowOffsetY = 4;
+
   /// Bottom padding scrollable tab content needs so its last item clears
   /// the floating nav bar instead of sitting behind it.
   static const double floatingNavClearance = floatingNavHeight + AppSpacing.xl;

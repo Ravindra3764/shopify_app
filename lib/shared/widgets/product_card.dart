@@ -55,29 +55,42 @@ class ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AspectRatio(
-              aspectRatio: imageAspectRatio ?? 1,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  CustomCachedImage(
-                    fit: isMasonry ? BoxFit.cover : BoxFit.contain,
-                    imageUrl: product.featuredImage?.url ?? '',
-                    placeholderName: product.title,
-                    borderRadius: AppDimensions.cardRadius,
-                    backgroundColor: isMasonry ? null : AppColors.surface,
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.black.withValues(alpha: 0.1),
+                    blurRadius: AppDimensions.cardShadowBlur,
+                    offset: const Offset(0, AppDimensions.cardShadowOffsetY),
                   ),
-                  if (soldOut) const _SoldOutBadge(),
-                  if (onWishlistToggle != null)
-                    Positioned(
-                      top: AppSpacing.sm,
-                      right: AppSpacing.sm,
-                      child: _WishlistHeart(
-                        isWishlisted: isWishlisted,
-                        onTap: onWishlistToggle!,
-                      ),
-                    ),
                 ],
+              ),
+              child: AspectRatio(
+                aspectRatio: imageAspectRatio ?? 1,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CustomCachedImage(
+                      fit: isMasonry ? BoxFit.cover : BoxFit.contain,
+                      imageUrl: product.featuredImage?.url ?? '',
+                      placeholderName: product.title,
+                      borderRadius: AppDimensions.cardRadius,
+                      backgroundColor: isMasonry ? null : AppColors.surface,
+                    ),
+                    if (soldOut) const _SoldOutBadge(),
+                    if (onWishlistToggle != null)
+                      Positioned(
+                        top: AppSpacing.sm,
+                        right: AppSpacing.sm,
+                        child: _WishlistHeart(
+                          isWishlisted: isWishlisted,
+                          onTap: onWishlistToggle!,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
