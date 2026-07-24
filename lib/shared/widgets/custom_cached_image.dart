@@ -26,6 +26,7 @@ class CustomCachedImage extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.borderRadius,
     this.backgroundColor,
+    this.memCacheWidth,
   });
 
   final String imageUrl;
@@ -36,6 +37,10 @@ class CustomCachedImage extends StatelessWidget {
   final double? width;
   final BoxFit fit;
   final double? borderRadius;
+
+  /// Decode the bitmap at this pixel width instead of full resolution — caps
+  /// memory for small tiles. Pass the target width in device pixels.
+  final int? memCacheWidth;
 
   /// Fill painted behind the image. Pair with [BoxFit.contain] to turn the
   /// inevitable letterbox into an intentional tile background.
@@ -53,6 +58,7 @@ class CustomCachedImage extends StatelessWidget {
             fit: fit,
             height: height,
             width: width,
+            memCacheWidth: memCacheWidth,
             placeholder: (_, _) => _Placeholder(height: height, width: width),
             errorWidget: (_, _, _) => _Placeholder(
               height: height,

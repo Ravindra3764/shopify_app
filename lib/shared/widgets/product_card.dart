@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/core/utils/shopify_image_url.dart';
 import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/providers/product_swatch_provider.dart';
 import 'package:shopify_app/shared/widgets/custom_cached_image.dart';
@@ -45,13 +46,30 @@ class ProductCard extends ConsumerWidget {
   /// Cross-fade when the sampled panel color resolves from its fallback.
   static const _panelFadeDuration = Duration(milliseconds: 350);
 
+  /// Grid columns the card width is estimated against when no explicit [width].
+  static const _columns = 2;
+
+  /// Clamp for the requested thumbnail width (device pixels).
+  static const _minPx = 200;
+  static const _maxPx = 1000;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final soldOut = !product.availableForSale;
-    final imageUrl = product.featuredImage?.url ?? '';
-    final tintEnabled = ref.watch(featureFlagsProvider).cardImageTintEnabled;
+    final tintEnabled = ref.watch(
+      featureFlagsProvider.select((f) => f.cardImageTintEnabled),
+    );
     final isMasonry = imageAspectRatio != null;
+
+    // Ask Shopify for a card-sized thumbnail (not the full-res original) and
+    // decode it at that pixel width — cuts network, decode, memory and the
+    // palette-sampling cost. Bucketed so we don't spawn many distinct URLs.
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final logicalWidth = width ?? MediaQuery.sizeOf(context).width / _columns;
+    final targetPx = (logicalWidth * dpr).round().clamp(_minPx, _maxPx);
+    final rawUrl = product.featuredImage?.url ?? '';
+    final imageUrl = sizedShopifyImageUrl(rawUrl, width: targetPx);
 
     // Tinted look: panel color sampled from the image, product `contain`ed on
     // it with a little breathing room. Otherwise the flat look: masonry goes
@@ -102,6 +120,7 @@ class ProductCard extends ConsumerWidget {
                           fit: imageFit,
                           imageUrl: imageUrl,
                           placeholderName: product.title,
+                          memCacheWidth: targetPx,
                         ),
                       ),
                       if (soldOut) const _SoldOutBadge(),
