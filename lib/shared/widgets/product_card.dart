@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shopify_app/config/product_card_style.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/core/utils/shopify_image_url.dart';
@@ -19,6 +20,7 @@ class ProductCard extends ConsumerWidget {
     this.imageAspectRatio,
     this.isWishlisted = false,
     this.onWishlistToggle,
+    this.onAddToCart,
   });
 
   final Product product;
@@ -43,6 +45,11 @@ class ProductCard extends ConsumerWidget {
   /// for tenants with the wishlist feature disabled.
   final VoidCallback? onWishlistToggle;
 
+  /// Tapped when the quick-add ("+") button is pressed. Only rendered by the
+  /// [ProductCardStyle.floating] card, and only when the product is in stock.
+  /// `null` hides the button.
+  final VoidCallback? onAddToCart;
+
   /// Cross-fade when the sampled panel color resolves from its fallback.
   static const _panelFadeDuration = Duration(milliseconds: 350);
 
@@ -55,10 +62,12 @@ class ProductCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final textTheme = Theme.of(context).textTheme;
     final soldOut = !product.availableForSale;
     final tintEnabled = ref.watch(
       featureFlagsProvider.select((f) => f.cardImageTintEnabled),
+    );
+    final style = ref.watch(
+      appConfigProvider.select((c) => c.productCardStyle),
     );
     final isMasonry = imageAspectRatio != null;
 
@@ -85,74 +94,251 @@ class ProductCard extends ConsumerWidget {
         ? const EdgeInsets.all(AppSpacing.sm)
         : EdgeInsets.zero;
 
+    final imagePanel = _ImagePanel(
+      panelColor: panelColor,
+      imageUrl: imageUrl,
+      imageFit: imageFit,
+      imagePadding: imagePadding,
+      imageAspectRatio: imageAspectRatio,
+      targetPx: targetPx,
+      placeholder: product.title,
+      soldOut: soldOut,
+      isWishlisted: isWishlisted,
+      onWishlistToggle: onWishlistToggle,
+      fadeDuration: _panelFadeDuration,
+      // The floating style paints the shadow on the outer card, not the panel.
+      elevated: style == ProductCardStyle.classic,
+    );
+
+    final card = switch (style) {
+      ProductCardStyle.classic => _ClassicCard(
+        product: product,
+        imagePanel: imagePanel,
+      ),
+      ProductCardStyle.floating => _FloatingCard(
+        product: product,
+        imagePanel: imagePanel,
+        onAddToCart: soldOut ? null : onAddToCart,
+      ),
+    };
+
     return GestureDetector(
       onTap: onTap,
       onDoubleTap: onDoubleTap,
-      child: SizedBox(
-        width: width,
+      child: SizedBox(width: width, child: card),
+    );
+  }
+}
+
+/// The rounded image panel shared by both card styles: the sampled color panel,
+/// the `contain`/`cover` image, the sold-out badge and the wishlist heart.
+class _ImagePanel extends StatelessWidget {
+  const _ImagePanel({
+    required this.panelColor,
+    required this.imageUrl,
+    required this.imageFit,
+    required this.imagePadding,
+    required this.imageAspectRatio,
+    required this.targetPx,
+    required this.placeholder,
+    required this.soldOut,
+    required this.isWishlisted,
+    required this.onWishlistToggle,
+    required this.fadeDuration,
+    required this.elevated,
+  });
+
+  final Color panelColor;
+  final String imageUrl;
+  final BoxFit imageFit;
+  final EdgeInsets imagePadding;
+  final double? imageAspectRatio;
+  final int targetPx;
+  final String placeholder;
+  final bool soldOut;
+  final bool isWishlisted;
+  final VoidCallback? onWishlistToggle;
+  final Duration fadeDuration;
+
+  /// Whether to draw the soft drop shadow under the panel (classic card). The
+  /// floating card draws its own shadow on the outer surface instead.
+  final bool elevated;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: fadeDuration,
+      curve: Curves.easeOut,
+      decoration: BoxDecoration(
+        color: panelColor,
+        borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
+        boxShadow: elevated
+            ? [
+                BoxShadow(
+                  color: AppColors.black.withValues(alpha: 0.1),
+                  blurRadius: AppDimensions.cardShadowBlur,
+                  offset: const Offset(0, AppDimensions.cardShadowOffsetY),
+                ),
+              ]
+            : null,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
+        child: AspectRatio(
+          aspectRatio: imageAspectRatio ?? 1,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Padding(
+                padding: imagePadding,
+                child: CustomCachedImage(
+                  fit: imageFit,
+                  imageUrl: imageUrl,
+                  placeholderName: placeholder,
+                  memCacheWidth: targetPx,
+                ),
+              ),
+              if (soldOut) const _SoldOutBadge(),
+              if (onWishlistToggle != null)
+                Positioned(
+                  top: AppSpacing.sm,
+                  right: AppSpacing.sm,
+                  child: _WishlistHeart(
+                    isWishlisted: isWishlisted,
+                    onTap: onWishlistToggle!,
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Flat card: image panel with the title and price stacked beneath it.
+class _ClassicCard extends StatelessWidget {
+  const _ClassicCard({required this.product, required this.imagePanel});
+
+  final Product product;
+  final Widget imagePanel;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        imagePanel,
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          product.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: textTheme.bodyMedium?.copyWith(color: AppColors.textPrimary),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        PriceTag(price: product.price, compareAtPrice: product.compareAtPrice),
+      ],
+    );
+  }
+}
+
+/// Elevated white card: rounded image on top, title + price below, and a
+/// circular quick-add button aligned with the price.
+class _FloatingCard extends StatelessWidget {
+  const _FloatingCard({
+    required this.product,
+    required this.imagePanel,
+    required this.onAddToCart,
+  });
+
+  final Product product;
+  final Widget imagePanel;
+  final VoidCallback? onAddToCart;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.black.withValues(alpha: 0.1),
+            blurRadius: AppDimensions.cardShadowBlur,
+            offset: const Offset(0, AppDimensions.cardShadowOffsetY),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.sm),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AnimatedContainer(
-              duration: _panelFadeDuration,
-              curve: Curves.easeOut,
-              decoration: BoxDecoration(
-                color: panelColor,
-                borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.black.withValues(alpha: 0.1),
-                    blurRadius: AppDimensions.cardShadowBlur,
-                    offset: const Offset(0, AppDimensions.cardShadowOffsetY),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AppDimensions.cardRadius),
-                child: AspectRatio(
-                  aspectRatio: imageAspectRatio ?? 1,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Padding(
-                        padding: imagePadding,
-                        child: CustomCachedImage(
-                          fit: imageFit,
-                          imageUrl: imageUrl,
-                          placeholderName: product.title,
-                          memCacheWidth: targetPx,
-                        ),
-                      ),
-                      if (soldOut) const _SoldOutBadge(),
-                      if (onWishlistToggle != null)
-                        Positioned(
-                          top: AppSpacing.sm,
-                          right: AppSpacing.sm,
-                          child: _WishlistHeart(
-                            isWishlisted: isWishlisted,
-                            onTap: onWishlistToggle!,
-                          ),
-                        ),
-                    ],
-                  ),
+            imagePanel,
+            const SizedBox(height: AppSpacing.sm),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+              child: Text(
+                product.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.titleSmall?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            Text(
-              product.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: textTheme.bodyMedium?.copyWith(
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            PriceTag(
-              price: product.price,
-              compareAtPrice: product.compareAtPrice,
+            Row(
+              children: [
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xs,
+                    ),
+                    child: PriceTag(
+                      price: product.price,
+                      compareAtPrice: product.compareAtPrice,
+                    ),
+                  ),
+                ),
+                if (onAddToCart != null) _QuickAddButton(onTap: onAddToCart!),
+              ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Circular "quick add to cart" button on the floating card.
+class _QuickAddButton extends StatelessWidget {
+  const _QuickAddButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      color: colorScheme.primary,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkResponse(
+        onTap: onTap,
+        radius: AppDimensions.circleIconButtonSize,
+        child: SizedBox(
+          width: AppDimensions.circleIconButtonSize,
+          height: AppDimensions.circleIconButtonSize,
+          child: Icon(
+            Icons.add,
+            size: AppDimensions.iconMd,
+            color: colorScheme.onPrimary,
+          ),
         ),
       ),
     );
