@@ -39,6 +39,10 @@ abstract final class AppDimensions {
   static const double bannerHeight = 460;
   static const double productCardWidth = 200;
   static const double productCardHeight = 260;
+
+  /// Row/grid extent for the floating card style — taller than
+  /// [productCardHeight] to fit its outer padding and quick-add button.
+  static const double productCardHeightFloating = 280;
   static const double productImageHeight = 200;
   static const double categoryTileHeight = 150;
 
