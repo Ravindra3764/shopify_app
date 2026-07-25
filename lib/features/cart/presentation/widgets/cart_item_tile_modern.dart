@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/core/utils/shopify_image_url.dart';
 import 'package:shopify_app/features/product_detail/presentation/widgets/quantity_stepper.dart';
+import 'package:shopify_app/providers/config_providers.dart';
+import 'package:shopify_app/shared/providers/product_swatch_provider.dart';
 import 'package:shopify_app/shared/widgets/custom_cached_image.dart';
 import 'package:shopify_app/shopify/models/cart_line.dart';
 
@@ -17,7 +21,7 @@ import 'package:shopify_app/shopify/models/cart_line.dart';
 ///   onDecrement: () => notifier.setLineQuantity(line.id, line.quantity - 1),
 /// );
 /// ```
-class CartItemTileModern extends StatelessWidget {
+class CartItemTileModern extends ConsumerWidget {
   const CartItemTileModern({
     required this.line,
     required this.onIncrement,
@@ -31,19 +35,48 @@ class CartItemTileModern extends StatelessWidget {
   final VoidCallback? onIncrement;
   final VoidCallback? onDecrement;
 
+  /// Clamp for the requested thumbnail width (device pixels).
+  static const _minPx = 200;
+  static const _maxPx = 600;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
     final accent = Theme.of(context).colorScheme.primary;
+
+    // Tinted thumbnail: panel colour sampled from the image, product
+    // `contain`ed on it — the same look as home product cards. Gated by the
+    // shared `cardImageTintEnabled` flag; otherwise a plain `cover` thumbnail.
+    final tintEnabled = ref.watch(
+      featureFlagsProvider.select((f) => f.cardImageTintEnabled),
+    );
+    final dpr = MediaQuery.devicePixelRatioOf(context);
+    final targetPx = (AppDimensions.cartThumbSizeLarge * dpr).round().clamp(
+      _minPx,
+      _maxPx,
+    );
+    final imageUrl = sizedShopifyImageUrl(
+      line.image?.url ?? '',
+      width: targetPx,
+    );
+    final tinted = tintEnabled && imageUrl.isNotEmpty;
+    final panelColor = tinted
+        ? ref
+              .watch(productSwatchProvider(imageUrl))
+              .maybeWhen(data: (c) => c, orElse: () => AppColors.surface)
+        : AppColors.surface;
 
     return Row(
       children: [
         CustomCachedImage(
-          imageUrl: line.image?.url ?? '',
+          imageUrl: imageUrl,
           placeholderName: line.productTitle,
           height: AppDimensions.cartThumbSizeLarge,
           width: AppDimensions.cartThumbSizeLarge,
           borderRadius: AppDimensions.radiusLg,
+          fit: tinted ? BoxFit.contain : BoxFit.cover,
+          backgroundColor: panelColor,
+          memCacheWidth: targetPx,
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(
