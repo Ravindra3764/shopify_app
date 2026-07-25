@@ -141,7 +141,7 @@ class _CartContent extends ConsumerWidget {
               key: ValueKey(line.id),
               direction: DismissDirection.endToStart,
               background: const _SwipeDeleteBackground(),
-              onDismissed: (_) => _removeWithUndo(context, notifier, line),
+              onDismissed: (_) => unawaited(notifier.removeLine(line.id)),
               child: CartItemTileModern(
                 line: line,
                 onIncrement: onIncrement(line),
@@ -152,24 +152,6 @@ class _CartContent extends ConsumerWidget {
           ],
         ];
     }
-  }
-
-  /// Removes [line] and offers an UNDO that re-adds the same variant/quantity.
-  void _removeWithUndo(
-    BuildContext context,
-    CartNotifier notifier,
-    CartLine line,
-  ) {
-    unawaited(notifier.removeLine(line.id));
-    showAppSnackBar(
-      context,
-      'Removed from cart',
-      icon: Icons.delete_outline,
-      actionLabel: 'UNDO',
-      onAction: () => unawaited(
-        notifier.addVariant(line.variantId, quantity: line.quantity),
-      ),
-    );
   }
 
   @override
