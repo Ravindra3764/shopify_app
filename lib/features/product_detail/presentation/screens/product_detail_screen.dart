@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shopify_app/config/cart_added_style.dart';
 import 'package:shopify_app/config/feature_flags.dart';
 import 'package:shopify_app/core/error/failure.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
@@ -19,6 +20,7 @@ import 'package:shopify_app/features/product_detail/presentation/widgets/related
 import 'package:shopify_app/features/wishlist/presentation/providers/wishlist_providers.dart';
 import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
+import 'package:shopify_app/shared/widgets/cart_added_overlay.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
 import 'package:shopify_app/shared/widgets/error_view.dart';
@@ -444,6 +446,11 @@ class _StickyActionBarState extends ConsumerState<_StickyActionBar> {
         icon: Icons.error_outline,
       );
       return;
+    }
+    // In the overlay style, confirm with the centered card too (the inline
+    // "Added to Cart" label still flips for the toast style).
+    if (ref.read(appConfigProvider).cartAddedStyle == CartAddedStyle.overlay) {
+      showCartAddedOverlay(context);
     }
     // Revert the confirmation label after a beat so the user can add more.
     _resetTimer?.cancel();

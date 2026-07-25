@@ -39,6 +39,10 @@ abstract final class AppDimensions {
   static const double bannerHeight = 460;
   static const double productCardWidth = 200;
   static const double productCardHeight = 260;
+
+  /// Row/grid extent for the floating card style — taller than
+  /// [productCardHeight] to fit its outer padding and quick-add button.
+  static const double productCardHeightFloating = 280;
   static const double productImageHeight = 200;
   static const double categoryTileHeight = 150;
 
@@ -88,6 +92,11 @@ abstract final class AppDimensions {
 
   /// Diameter of the animated success badge on the confirmation screen.
   static const double successBadgeSize = 96;
+
+  /// Minimum edge of the centered "added to cart" confirmation overlay, and the
+  /// diameter of the check-mark ring inside it.
+  static const double cartAddedOverlaySize = 180;
+  static const double cartAddedCheckSize = 88;
 
   /// Diameter of the count badge overlaid on a cart icon.
   static const double cartBadgeSize = 18;

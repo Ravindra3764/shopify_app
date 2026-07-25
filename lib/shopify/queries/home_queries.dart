@@ -44,6 +44,7 @@ query Home($bannerCount: Int!, $collectionCount: Int!, $productCount: Int!) {
               featuredImage { url altText width height }
               priceRange { minVariantPrice { amount currencyCode } }
               compareAtPriceRange { minVariantPrice { amount currencyCode } }
+              variants(first: 1) { nodes { id } }
             }
           }
         }

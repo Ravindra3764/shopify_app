@@ -12,6 +12,7 @@ class Product {
     required this.price,
     this.featuredImage,
     this.compareAtPrice,
+    this.firstVariantId,
   });
 
   /// Builds from a Storefront `Product` node.
@@ -28,6 +29,16 @@ class Product {
     );
     final compareAt = compareMap.isEmpty ? null : Money.fromJson(compareMap);
 
+    // First purchasable variant id — used for quick-add from a card. Null when
+    // the summary query didn't request variants (or the product has none).
+    final variantIds = parseList<String>(
+      parseMap(json, 'variants', model: _model),
+      'nodes',
+      model: _model,
+      fromItem: (item) =>
+          item is Map<String, dynamic> ? (item['id'] as String? ?? '') : '',
+    ).where((id) => id.isNotEmpty);
+
     return Product(
       id: parseString(json, 'id', model: _model),
       title: parseString(json, 'title', model: _model),
@@ -41,6 +52,7 @@ class Product {
       compareAtPrice: (compareAt != null && compareAt.isPositive)
           ? compareAt
           : null,
+      firstVariantId: variantIds.isEmpty ? null : variantIds.first,
     );
   }
 
@@ -54,6 +66,12 @@ class Product {
     'priceRange': {'minVariantPrice': price.toJson()},
     'compareAtPriceRange': {'minVariantPrice': compareAtPrice?.toJson()},
     'featuredImage': featuredImage?.toJson(),
+    if (firstVariantId != null)
+      'variants': {
+        'nodes': [
+          {'id': firstVariantId},
+        ],
+      },
   };
 
   static const _model = 'Product';
@@ -65,6 +83,10 @@ class Product {
   final Money price;
   final ShopifyImage? featuredImage;
   final Money? compareAtPrice;
+
+  /// Id of the first purchasable variant, for quick-add from a card. Null when
+  /// the summary query didn't request variants — quick-add is then unavailable.
+  final String? firstVariantId;
 
   /// Whether [compareAtPrice] marks a genuine markdown over [price].
   bool get isOnSale =>

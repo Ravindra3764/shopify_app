@@ -178,13 +178,12 @@ class _ResultsGrid extends ConsumerWidget {
                     ),
                   )
                 : SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: AppSpacing.lg,
-                          crossAxisSpacing: AppSpacing.md,
-                          mainAxisExtent: AppDimensions.productCardHeight,
-                        ),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: AppSpacing.lg,
+                      crossAxisSpacing: AppSpacing.md,
+                      mainAxisExtent: ref.watch(productCardExtentProvider),
+                    ),
                     delegate: SliverChildBuilderDelegate((context, i) {
                       return WishlistProductCard(
                         product: products[i],

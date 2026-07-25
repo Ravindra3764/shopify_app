@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/product_detail/presentation/product_navigation.dart';
 import 'package:shopify_app/features/wishlist/presentation/widgets/wishlist_product_card.dart';
+import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/section_header.dart';
 import 'package:shopify_app/shopify/models/product.dart';
 
 /// "You May Also Like" row of related [products] on the product-detail
 /// screen. Renders nothing when [products] is empty.
-class RelatedProductsSection extends StatelessWidget {
+class RelatedProductsSection extends ConsumerWidget {
   const RelatedProductsSection({
     required this.products,
     super.key,
@@ -18,7 +20,7 @@ class RelatedProductsSection extends StatelessWidget {
   final String title;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (products.isEmpty) return const SizedBox.shrink();
 
     return Column(
@@ -30,7 +32,7 @@ class RelatedProductsSection extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         SizedBox(
-          height: AppDimensions.productCardHeight,
+          height: ref.watch(productCardExtentProvider),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),

@@ -65,11 +65,11 @@ class ProductFeed extends ConsumerWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: padding,
         itemCount: products.length,
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: _columns,
           mainAxisSpacing: AppSpacing.lg,
           crossAxisSpacing: AppSpacing.md,
-          mainAxisExtent: AppDimensions.productCardHeight,
+          mainAxisExtent: ref.watch(productCardExtentProvider),
         ),
         itemBuilder: (context, i) => WishlistProductCard(
           product: products[i],

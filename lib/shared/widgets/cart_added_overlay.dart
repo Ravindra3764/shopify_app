@@ -1,0 +1,145 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shopify_app/config/cart_added_style.dart';
+import 'package:shopify_app/core/theme/app_colors.dart';
+import 'package:shopify_app/core/theme/app_spacing.dart';
+import 'package:shopify_app/providers/config_providers.dart';
+import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
+
+/// Confirms a successful add-to-cart in the tenant's configured style
+/// ([CartAddedStyle]): a bottom toast, or a centered check-mark overlay.
+///
+/// ```dart
+/// showCartAddedFeedback(context, ref);
+/// ```
+void showCartAddedFeedback(BuildContext context, WidgetRef ref) {
+  final style = ref.read(appConfigProvider).cartAddedStyle;
+  switch (style) {
+    case CartAddedStyle.toast:
+      showAppSnackBar(context, 'Added to cart', icon: Icons.shopping_bag);
+    case CartAddedStyle.overlay:
+      showCartAddedOverlay(context);
+  }
+}
+
+/// Shows the centered, auto-dismissing "Product added to the cart" overlay,
+/// regardless of the configured style. Prefer [showCartAddedFeedback] unless
+/// the caller has already resolved that the overlay style is active.
+void showCartAddedOverlay(BuildContext context) {
+  final overlay = Overlay.maybeOf(context, rootOverlay: true);
+  if (overlay == null) return;
+
+  late final OverlayEntry entry;
+  entry = OverlayEntry(
+    builder: (_) => _CartAddedOverlay(onDismiss: entry.remove),
+  );
+  overlay.insert(entry);
+}
+
+/// Animated overlay body: fades and scales a translucent card in, holds, then
+/// fades out and calls [onDismiss] to remove its [OverlayEntry].
+class _CartAddedOverlay extends StatefulWidget {
+  const _CartAddedOverlay({required this.onDismiss});
+
+  final VoidCallback onDismiss;
+
+  @override
+  State<_CartAddedOverlay> createState() => _CartAddedOverlayState();
+}
+
+class _CartAddedOverlayState extends State<_CartAddedOverlay>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 220),
+  );
+
+  static const _holdDuration = Duration(milliseconds: 950);
+  Timer? _holdTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.forward();
+    _holdTimer = Timer(_holdDuration, _reverseThenDismiss);
+  }
+
+  Future<void> _reverseThenDismiss() async {
+    if (!mounted) return;
+    await _controller.reverse();
+    widget.onDismiss();
+  }
+
+  @override
+  void dispose() {
+    _holdTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final curved = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+      reverseCurve: Curves.easeIn,
+    );
+    return IgnorePointer(
+      child: Center(
+        child: FadeTransition(
+          opacity: curved,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.85, end: 1).animate(curved),
+            child: _card(context),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _card(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(
+        minWidth: AppDimensions.cartAddedOverlaySize,
+        minHeight: AppDimensions.cartAddedOverlaySize,
+      ),
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.black.withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: AppDimensions.cartAddedCheckSize,
+            height: AppDimensions.cartAddedCheckSize,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.white,
+                width: AppDimensions.swatchRingWidth,
+              ),
+            ),
+            child: const Icon(
+              Icons.check,
+              color: AppColors.white,
+              size: AppDimensions.iconLg,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            'Product added\nto the cart',
+            textAlign: TextAlign.center,
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: AppColors.white),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart';
 import 'package:shopify_app/features/wishlist/presentation/providers/wishlist_providers.dart';
 import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
+import 'package:shopify_app/shared/widgets/cart_added_overlay.dart';
 import 'package:shopify_app/shared/widgets/product_card.dart';
 import 'package:shopify_app/shopify/models/product.dart';
 
 /// [ProductCard] wired to the wishlist: shows a heart and toggles on tap or
 /// double-tap. Falls back to a plain card for tenants with the wishlist
 /// feature disabled, so callers can use it everywhere without gating.
+///
+/// When the floating card style is active, the card's quick-add ("+") button is
+/// wired to add the product's first variant straight to the cart.
 class WishlistProductCard extends ConsumerWidget {
   const WishlistProductCard({
     required this.product,
@@ -28,6 +33,12 @@ class WishlistProductCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Quick-add is only possible when the summary carried a variant id.
+    final variantId = product.firstVariantId;
+    final onAddToCart = variantId == null
+        ? null
+        : () => _addToCart(context, ref, variantId);
+
     final enabled = ref.watch(featureFlagsProvider).wishlistEnabled;
     if (!enabled) {
       return ProductCard(
@@ -35,6 +46,7 @@ class WishlistProductCard extends ConsumerWidget {
         onTap: onTap,
         width: width,
         imageAspectRatio: imageAspectRatio,
+        onAddToCart: onAddToCart,
       );
     }
 
@@ -48,6 +60,7 @@ class WishlistProductCard extends ConsumerWidget {
       onWishlistToggle: () =>
           _toggle(context, ref, wasWishlisted: isWishlisted),
       onDoubleTap: () => _toggle(context, ref, wasWishlisted: isWishlisted),
+      onAddToCart: onAddToCart,
     );
   }
 
@@ -62,5 +75,23 @@ class WishlistProductCard extends ConsumerWidget {
       wasWishlisted ? 'Removed from wishlist' : 'Added to wishlist',
       icon: wasWishlisted ? Icons.favorite_border : Icons.favorite,
     );
+  }
+
+  Future<void> _addToCart(
+    BuildContext context,
+    WidgetRef ref,
+    String variantId,
+  ) async {
+    await ref.read(cartProvider.notifier).addVariant(variantId);
+    if (!context.mounted) return;
+    if (ref.read(cartProvider).hasError) {
+      showAppSnackBar(
+        context,
+        'Could not add to cart. Please try again.',
+        icon: Icons.error_outline,
+      );
+      return;
+    }
+    showCartAddedFeedback(context, ref);
   }
 }
