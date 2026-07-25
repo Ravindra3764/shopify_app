@@ -6,11 +6,20 @@ import 'package:shopify_app/core/theme/app_spacing.dart';
 /// [icon]. Replaces Flutter's default edge-to-edge grey bar for a consistent,
 /// on-brand toast across the app.
 ///
+/// Pass [actionLabel] + [onAction] to show a trailing button (e.g. "UNDO").
+///
 /// ```dart
 /// showAppSnackBar(context, 'Added to cart', icon: Icons.check_circle_outline);
 /// ```
-void showAppSnackBar(BuildContext context, String message, {IconData? icon}) {
+void showAppSnackBar(
+  BuildContext context,
+  String message, {
+  IconData? icon,
+  String? actionLabel,
+  VoidCallback? onAction,
+}) {
   final theme = Theme.of(context);
+  final showAction = actionLabel != null && onAction != null;
 
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
@@ -20,6 +29,13 @@ void showAppSnackBar(BuildContext context, String message, {IconData? icon}) {
         backgroundColor: AppColors.textPrimary,
         elevation: 6,
         duration: const Duration(seconds: 2),
+        action: showAction
+            ? SnackBarAction(
+                label: actionLabel,
+                textColor: AppColors.white,
+                onPressed: onAction,
+              )
+            : null,
         margin: const EdgeInsets.all(AppSpacing.md),
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,

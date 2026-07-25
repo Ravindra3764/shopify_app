@@ -55,6 +55,13 @@ abstract final class AppDimensions {
   static const double swatchRingWidth = 2;
   static const double optionChipHeight = 44;
   static const double quantityStepperWidth = 120;
+
+  /// Height of the compact, outlined "pill" quantity stepper (e.g. modern cart
+  /// rows). Its radius is half this, giving a stadium shape.
+  static const double quantityStepperCompactHeight = 36;
+
+  /// Larger rounded cart thumbnail used by the modern cart row.
+  static const double cartThumbSizeLarge = 104;
   static const double shimmerTitleWidth = 220;
   static const double shimmerShortWidth = 120;
 

@@ -214,10 +214,27 @@ class CartNotifier extends AsyncNotifier<Cart?> {
   }
 
   /// Removes [lineId] from the cart.
+  ///
+  /// Drops the line from local state first so the row leaves the tree
+  /// immediately (a swipe-to-delete `Dismissible` requires this), then sends
+  /// the removal to Shopify and reconciles.
   Future<void> removeLine(String lineId) {
     final id = _cartId;
     if (id == null) return Future<void>.value();
+    _applyOptimisticRemoval(lineId);
     return _mutate(() => _repo.removeLine(id, lineId));
+  }
+
+  /// Removes [lineId] from the current cart and publishes it ahead of the
+  /// Storefront round-trip.
+  void _applyOptimisticRemoval(String lineId) {
+    final current = state.valueOrNull;
+    if (current == null) return;
+    final lines = [
+      for (final line in current.lines)
+        if (line.id != lineId) line,
+    ];
+    state = AsyncData<Cart?>(current.withLines(lines));
   }
 
   /// Applies promo [code] to the cart, merging it with any already-applicable

@@ -3,13 +3,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shopify_app/config/cart_layout.dart';
 import 'package:shopify_app/core/error/failure.dart';
 import 'package:shopify_app/core/routing/app_routes.dart';
 import 'package:shopify_app/core/theme/app_colors.dart';
 import 'package:shopify_app/core/theme/app_spacing.dart';
 import 'package:shopify_app/features/cart/presentation/providers/cart_providers.dart';
 import 'package:shopify_app/features/cart/presentation/widgets/cart_item_tile.dart';
+import 'package:shopify_app/features/cart/presentation/widgets/cart_item_tile_modern.dart';
 import 'package:shopify_app/features/cart/presentation/widgets/cart_summary.dart';
+import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
 import 'package:shopify_app/shared/widgets/custom_background.dart';
 import 'package:shopify_app/shared/widgets/custom_button.dart';
@@ -18,6 +21,7 @@ import 'package:shopify_app/shared/widgets/error_view.dart';
 import 'package:shopify_app/shared/widgets/loading_shimmer.dart';
 import 'package:shopify_app/shared/widgets/pull_to_refresh.dart';
 import 'package:shopify_app/shopify/models/cart.dart';
+import 'package:shopify_app/shopify/models/cart_line.dart';
 
 /// Cart tab — lists the guest cart's lines, cost breakdown, and checkout CTA.
 class CartScreen extends ConsumerWidget {
@@ -99,6 +103,57 @@ class _CartContent extends ConsumerWidget {
     }
   }
 
+  /// Builds the line-item widgets for the active [CartLayout]: classic rows
+  /// with an inline remove + divider, or modern swipe-to-delete rows.
+  List<Widget> _buildItems(
+    BuildContext context,
+    WidgetRef ref,
+    CartNotifier notifier,
+  ) {
+    VoidCallback? onIncrement(CartLine line) => line.canIncrease
+        ? () => notifier.setLineQuantity(line.id, line.quantity + 1)
+        : null;
+    VoidCallback? onDecrement(CartLine line) => line.quantity > 1
+        ? () => notifier.setLineQuantity(line.id, line.quantity - 1)
+        : null;
+
+    final layout = ref.watch(appConfigProvider.select((c) => c.cartLayout));
+    switch (layout) {
+      case CartLayout.classic:
+        return [
+          for (final line in cart.lines) ...[
+            CartItemTile(
+              line: line,
+              onIncrement: onIncrement(line),
+              onDecrement: onDecrement(line),
+              onRemove: () => notifier.removeLine(line.id),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
+              child: Divider(color: AppColors.divider, height: 1),
+            ),
+          ],
+        ];
+      case CartLayout.modern:
+        return [
+          for (final line in cart.lines) ...[
+            Dismissible(
+              key: ValueKey(line.id),
+              direction: DismissDirection.endToStart,
+              background: const _SwipeDeleteBackground(),
+              onDismissed: (_) => unawaited(notifier.removeLine(line.id)),
+              child: CartItemTileModern(
+                line: line,
+                onIncrement: onIncrement(line),
+                onDecrement: onDecrement(line),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+          ],
+        ];
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
@@ -137,22 +192,7 @@ class _CartContent extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            for (final line in cart.lines) ...[
-              CartItemTile(
-                line: line,
-                onIncrement: line.canIncrease
-                    ? () => notifier.setLineQuantity(line.id, line.quantity + 1)
-                    : null,
-                onDecrement: line.quantity > 1
-                    ? () => notifier.setLineQuantity(line.id, line.quantity - 1)
-                    : null,
-                onRemove: () => notifier.removeLine(line.id),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
-                child: Divider(color: AppColors.divider, height: 1),
-              ),
-            ],
+            ..._buildItems(context, ref, notifier),
             CartSummary(
               cart: cart,
               onApplyPromo: (code) =>
@@ -185,6 +225,29 @@ class _CartContent extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Red panel with a trash icon revealed as a modern cart row is swiped
+/// right-to-left toward deletion.
+class _SwipeDeleteBackground extends StatelessWidget {
+  const _SwipeDeleteBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.error,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+      ),
+      child: const Icon(
+        Icons.delete_outline,
+        color: AppColors.white,
+        size: AppDimensions.iconLg,
       ),
     );
   }

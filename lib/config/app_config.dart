@@ -1,4 +1,5 @@
 import 'package:shopify_app/config/cart_added_style.dart';
+import 'package:shopify_app/config/cart_layout.dart';
 import 'package:shopify_app/config/feature_flags.dart';
 import 'package:shopify_app/config/product_card_style.dart';
 import 'package:shopify_app/config/product_grid_style.dart';
@@ -18,6 +19,7 @@ class AppConfig {
     this.productGridStyle = ProductGridStyle.standard,
     this.productCardStyle = ProductCardStyle.classic,
     this.cartAddedStyle = CartAddedStyle.toast,
+    this.cartLayout = CartLayout.classic,
     this.defaultCountry = 'US',
     this.wishlistHintText =
         'Double-tap any product to save it to your wishlist.',
@@ -59,6 +61,8 @@ class AppConfig {
       productCardStyle: ProductCardStyle.fromEnv(env['PRODUCT_CARD_STYLE']),
       // Add-to-cart confirmation: bottom toast vs centered overlay.
       cartAddedStyle: CartAddedStyle.fromEnv(env['CART_ADDED_STYLE']),
+      // Cart row look: classic (inline X) vs modern (swipe-to-delete).
+      cartLayout: CartLayout.fromEnv(env['CART_LAYOUT']),
       // Home country (ISO code) prefilled on the checkout address form.
       defaultCountry: (env['DEFAULT_COUNTRY'] ?? 'US').trim().toUpperCase(),
       // Onboarding hint copy; falls back to the default when unset/blank.
@@ -110,6 +114,10 @@ class AppConfig {
   /// How a successful add-to-cart is confirmed (bottom toast vs centered
   /// overlay). Per-tenant via `CART_ADDED_STYLE`.
   final CartAddedStyle cartAddedStyle;
+
+  /// How the cart lists line items (classic inline-remove row vs modern
+  /// swipe-to-delete row). Per-tenant via `CART_LAYOUT`.
+  final CartLayout cartLayout;
 
   /// Tenant home country as an ISO 3166-1 alpha-2 code (e.g. `US`, `IN`).
   /// Prefilled as the country on the checkout address form.
