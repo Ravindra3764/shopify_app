@@ -5,11 +5,15 @@ import 'package:shopify_app/core/theme/app_spacing.dart';
 /// Bordered `- qty +` stepper. [onDecrement] is `null` at [quantity] `1`, so
 /// the button disables itself instead of going below one. Pass a `null`
 /// [onIncrement] to disable `+` — e.g. when the quantity has reached stock.
+///
+/// Set [compact] for the outlined "pill" variant (content-sized, stadium
+/// border) used in modern cart rows; the default is the wider filled box.
 class QuantityStepper extends StatelessWidget {
   const QuantityStepper({
     required this.quantity,
     required this.onIncrement,
     required this.onDecrement,
+    this.compact = false,
     super.key,
   });
 
@@ -17,16 +21,27 @@ class QuantityStepper extends StatelessWidget {
   final VoidCallback? onIncrement;
   final VoidCallback? onDecrement;
 
+  /// Outlined, content-sized pill instead of the filled fixed-width box.
+  final bool compact;
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: AppDimensions.quantityStepperWidth,
-      height: AppDimensions.optionChipHeight,
+      width: compact ? null : AppDimensions.quantityStepperWidth,
+      height: compact
+          ? AppDimensions.quantityStepperCompactHeight
+          : AppDimensions.optionChipHeight,
       decoration: BoxDecoration(
-        color: AppColors.boxFill,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
+        color: compact ? Colors.transparent : AppColors.boxFill,
+        border: compact ? Border.all(color: AppColors.border) : null,
+        borderRadius: BorderRadius.circular(
+          compact
+              ? AppDimensions.quantityStepperCompactHeight
+              : AppDimensions.radiusSm,
+        ),
       ),
       child: Row(
+        mainAxisSize: compact ? MainAxisSize.min : MainAxisSize.max,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _StepButton(icon: Icons.remove, onTap: onDecrement),
