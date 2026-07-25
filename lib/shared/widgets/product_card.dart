@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/config/product_card_style.dart';
@@ -322,29 +324,76 @@ class _FloatingCard extends StatelessWidget {
   }
 }
 
-/// Circular "quick add to cart" button on the floating card.
-class _QuickAddButton extends StatelessWidget {
+/// Circular "quick add to cart" button on the floating card. Pops with a scale
+/// bounce and briefly swaps to a check mark to acknowledge the tap.
+class _QuickAddButton extends StatefulWidget {
   const _QuickAddButton({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
+  State<_QuickAddButton> createState() => _QuickAddButtonState();
+}
+
+class _QuickAddButtonState extends State<_QuickAddButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 180),
+    upperBound: 0.25,
+  );
+
+  static const _revertDelay = Duration(milliseconds: 900);
+  Timer? _revertTimer;
+  bool _added = false;
+
+  void _handleTap() {
+    widget.onTap();
+    // Pop out then settle back.
+    _controller.forward().then((_) => _controller.reverse());
+    setState(() => _added = true);
+    _revertTimer?.cancel();
+    _revertTimer = Timer(_revertDelay, () {
+      if (mounted) setState(() => _added = false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _revertTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Material(
-      color: colorScheme.primary,
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkResponse(
-        onTap: onTap,
-        radius: AppDimensions.circleIconButtonSize,
-        child: SizedBox(
-          width: AppDimensions.circleIconButtonSize,
-          height: AppDimensions.circleIconButtonSize,
-          child: Icon(
-            Icons.add,
-            size: AppDimensions.iconMd,
-            color: colorScheme.onPrimary,
+    return AnimatedBuilder(
+      animation: _controller,
+      // Controller runs [0, 0.25] and back → a 1.0 → 1.25 → 1.0 pop.
+      builder: (context, child) =>
+          Transform.scale(scale: 1 + _controller.value, child: child),
+      child: Material(
+        color: colorScheme.primary,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkResponse(
+          onTap: _handleTap,
+          radius: AppDimensions.circleIconButtonSize,
+          child: SizedBox(
+            width: AppDimensions.circleIconButtonSize,
+            height: AppDimensions.circleIconButtonSize,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 200),
+              transitionBuilder: (child, anim) =>
+                  ScaleTransition(scale: anim, child: child),
+              child: Icon(
+                _added ? Icons.check : Icons.add,
+                key: ValueKey(_added),
+                size: AppDimensions.iconMd,
+                color: colorScheme.onPrimary,
+              ),
+            ),
           ),
         ),
       ),
