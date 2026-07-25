@@ -4,6 +4,7 @@ import 'package:shopify_app/features/cart/presentation/providers/cart_providers.
 import 'package:shopify_app/features/wishlist/presentation/providers/wishlist_providers.dart';
 import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
+import 'package:shopify_app/shared/widgets/cart_added_overlay.dart';
 import 'package:shopify_app/shared/widgets/product_card.dart';
 import 'package:shopify_app/shopify/models/product.dart';
 
@@ -83,6 +84,14 @@ class WishlistProductCard extends ConsumerWidget {
   ) async {
     await ref.read(cartProvider.notifier).addVariant(variantId);
     if (!context.mounted) return;
-    showAppSnackBar(context, 'Added to cart', icon: Icons.shopping_bag);
+    if (ref.read(cartProvider).hasError) {
+      showAppSnackBar(
+        context,
+        'Could not add to cart. Please try again.',
+        icon: Icons.error_outline,
+      );
+      return;
+    }
+    showCartAddedFeedback(context, ref);
   }
 }
