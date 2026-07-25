@@ -299,9 +299,16 @@ class _FloatingCard extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.xs,
                     ),
-                    child: PriceTag(
-                      price: product.price,
-                      compareAtPrice: product.compareAtPrice,
+                    // Scale the price down (rather than wrap/overflow) so a
+                    // compare-at price still fits the one line beside the
+                    // quick-add button on narrow cards.
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: PriceTag(
+                        price: product.price,
+                        compareAtPrice: product.compareAtPrice,
+                      ),
                     ),
                   ),
                 ),
