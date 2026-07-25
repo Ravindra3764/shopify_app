@@ -93,6 +93,11 @@ abstract final class AppDimensions {
   /// Diameter of the animated success badge on the confirmation screen.
   static const double successBadgeSize = 96;
 
+  /// Minimum edge of the centered "added to cart" confirmation overlay, and the
+  /// diameter of the check-mark ring inside it.
+  static const double cartAddedOverlaySize = 180;
+  static const double cartAddedCheckSize = 88;
+
   /// Diameter of the count badge overlaid on a cart icon.
   static const double cartBadgeSize = 18;
 }
