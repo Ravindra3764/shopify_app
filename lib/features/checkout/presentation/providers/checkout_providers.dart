@@ -88,8 +88,11 @@ class CheckoutNotifier extends AutoDisposeAsyncNotifier<CheckoutState> {
     if (cart == null || cart.isEmpty) {
       throw const ShopifyFailure('Your cart is empty.');
     }
-    // Prefill the last-used email so the address step isn't blank.
-    final email = ref.read(addressStorageProvider).readEmail();
+    // Prefer the signed-in customer's email; fall back to the last-used email
+    // so the address step isn't blank for guests.
+    final email =
+        ref.read(currentCustomerProvider)?.email ??
+        ref.read(addressStorageProvider).readEmail();
     return CheckoutState(cart: cart, email: email);
   }
 
