@@ -41,9 +41,9 @@ class CartItemTileModern extends StatelessWidget {
         CustomCachedImage(
           imageUrl: line.image?.url ?? '',
           placeholderName: line.productTitle,
-          height: AppDimensions.cartThumbSize,
-          width: AppDimensions.cartThumbSize,
-          borderRadius: AppDimensions.radiusMd,
+          height: AppDimensions.cartThumbSizeLarge,
+          width: AppDimensions.cartThumbSizeLarge,
+          borderRadius: AppDimensions.radiusLg,
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(
@@ -88,6 +88,7 @@ class CartItemTileModern extends StatelessWidget {
                     quantity: line.quantity,
                     onIncrement: onIncrement,
                     onDecrement: onDecrement,
+                    compact: true,
                   ),
                 ],
               ),
