@@ -57,8 +57,7 @@ GoRouter createRouter({
             routes: [
               GoRoute(
                 path: AppRoutes.home,
-                builder: (context, state) =>
-                    const ShellBackHandler(isHome: true, child: HomeScreen()),
+                builder: (context, state) => const HomeScreen(),
               ),
             ],
           ),
@@ -66,8 +65,7 @@ GoRouter createRouter({
             routes: [
               GoRoute(
                 path: AppRoutes.browse,
-                builder: (context, state) =>
-                    const ShellBackHandler(child: BrowseScreen()),
+                builder: (context, state) => const BrowseScreen(),
               ),
             ],
           ),
@@ -75,8 +73,7 @@ GoRouter createRouter({
             routes: [
               GoRoute(
                 path: AppRoutes.cart,
-                builder: (context, state) =>
-                    const ShellBackHandler(child: CartScreen()),
+                builder: (context, state) => const CartScreen(),
               ),
             ],
           ),
@@ -84,8 +81,7 @@ GoRouter createRouter({
             routes: [
               GoRoute(
                 path: AppRoutes.profile,
-                builder: (context, state) =>
-                    const ShellBackHandler(child: ProfileScreen()),
+                builder: (context, state) => const ProfileScreen(),
               ),
             ],
           ),
