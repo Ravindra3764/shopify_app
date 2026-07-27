@@ -4,7 +4,12 @@
     <application
         android:label="shopify_app"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="false"><!--
+        Predictive back (default-on for targetSdk 35+) routes the system back
+        through OnBackInvokedCallback, which bypasses Flutter's legacy
+        BackButtonDispatcher and our BackButtonListener in AppShell. Opt out so
+        back-to-home / double-back-to-exit fire reliably. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
