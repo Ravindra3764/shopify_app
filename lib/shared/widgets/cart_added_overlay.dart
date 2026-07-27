@@ -62,8 +62,14 @@ void showCartAddedOverlay(BuildContext context) {
   );
 }
 
+/// The overlay currently on screen, if any. Kept so a rapid second add
+/// (double-tapped quick-add, spammed heart) replaces it instead of stacking
+/// a second card on top of the first.
+OverlayEntry? _activeEntry;
+
 /// Shows the centered, auto-dismissing overlay with [icon] above [message],
-/// regardless of the configured style.
+/// regardless of the configured style. If one is already showing it is removed
+/// first, so at most one overlay is ever visible.
 void showAddedOverlay(
   BuildContext context, {
   required IconData icon,
@@ -72,11 +78,22 @@ void showAddedOverlay(
   final overlay = Overlay.maybeOf(context, rootOverlay: true);
   if (overlay == null) return;
 
+  _activeEntry?.remove();
+
   late final OverlayEntry entry;
   entry = OverlayEntry(
-    builder: (_) =>
-        _AddedOverlay(icon: icon, message: message, onDismiss: entry.remove),
+    builder: (_) => _AddedOverlay(
+      icon: icon,
+      message: message,
+      onDismiss: () {
+        // Only clear the shared handle if we're still the active entry; a
+        // newer overlay may have taken over while this one was animating out.
+        if (identical(_activeEntry, entry)) _activeEntry = null;
+        entry.remove();
+      },
+    ),
   );
+  _activeEntry = entry;
   overlay.insert(entry);
 }
 

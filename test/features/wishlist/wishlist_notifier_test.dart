@@ -49,6 +49,10 @@ ProviderContainer _container(_FakeWishlistStorage storage) {
 }
 
 void main() {
+  // add()/remove() fire HapticFeedback (a platform channel call); initialise
+  // the test binding so those calls no-op instead of throwing off-binding.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('WishlistNotifier', () {
     test('hydrates from storage on build', () {
       final storage = _FakeWishlistStorage([_product('1').toJson()]);

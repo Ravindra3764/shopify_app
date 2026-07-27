@@ -114,11 +114,8 @@ class CartNotifier extends AsyncNotifier<Cart?> {
   /// still accepts `cartLinesAdd` but the line won't stick (it returns at
   /// quantity 0). When that happens we abandon the dead cart and create a
   /// fresh one so the item actually lands.
-  Future<void> addVariant(String variantId, {int quantity = 1}) {
-    // Single source of add-to-cart haptic — fires for every call site (product
-    // card quick-add, product detail, wishlist) so the feedback is identical.
-    unawaited(HapticFeedback.heavyImpact());
-    return _mutate(() async {
+  Future<void> addVariant(String variantId, {int quantity = 1}) async {
+    await _mutate(() async {
       final id = _cartId;
       if (id == null) return _repo.createCart(variantId, quantity);
 
@@ -132,6 +129,11 @@ class CartNotifier extends AsyncNotifier<Cart?> {
       }
       return result;
     });
+
+    // Single source of add-to-cart haptic — fires for every call site (product
+    // card quick-add, product detail, wishlist) but only once the item actually
+    // landed, so a failed add gives no false success buzz.
+    if (!state.hasError) unawaited(HapticFeedback.heavyImpact());
   }
 
   /// Sets the quantity of [lineId]; removes the line when [quantity] hits 0.
