@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/providers/storage_providers.dart';
 import 'package:shopify_app/shopify/models/product.dart';
@@ -24,6 +25,9 @@ class WishlistNotifier extends Notifier<List<Product>> {
   /// Saves [product]; no-op when already wishlisted.
   void add(Product product) {
     if (contains(product.id)) return;
+    // Single source of add-to-wishlist haptic — fires for every call site
+    // (card heart, product detail) so the feedback is identical.
+    unawaited(HapticFeedback.mediumImpact());
     state = [...state, product];
     _persist();
   }
@@ -31,6 +35,8 @@ class WishlistNotifier extends Notifier<List<Product>> {
   /// Removes the product with [productId]; no-op when absent.
   void remove(String productId) {
     if (!contains(productId)) return;
+    // Lighter haptic than [add] so removal feels distinct from saving.
+    unawaited(HapticFeedback.lightImpact());
     state = state.where((p) => p.id != productId).toList();
     _persist();
   }

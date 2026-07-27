@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shopify_app/core/error/failure.dart';
 import 'package:shopify_app/core/result/result.dart';
@@ -114,6 +115,9 @@ class CartNotifier extends AsyncNotifier<Cart?> {
   /// quantity 0). When that happens we abandon the dead cart and create a
   /// fresh one so the item actually lands.
   Future<void> addVariant(String variantId, {int quantity = 1}) {
+    // Single source of add-to-cart haptic — fires for every call site (product
+    // card quick-add, product detail, wishlist) so the feedback is identical.
+    unawaited(HapticFeedback.heavyImpact());
     return _mutate(() async {
       final id = _cartId;
       if (id == null) return _repo.createCart(variantId, quantity);
