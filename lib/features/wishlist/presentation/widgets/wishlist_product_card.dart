@@ -70,10 +70,21 @@ class WishlistProductCard extends ConsumerWidget {
     required bool wasWishlisted,
   }) {
     ref.read(wishlistProvider.notifier).toggle(product);
-    showAppSnackBar(
+    if (wasWishlisted) {
+      showAppSnackBar(
+        context,
+        'Removed from wishlist',
+        icon: Icons.favorite_border,
+      );
+      return;
+    }
+    showAddedFeedback(
       context,
-      wasWishlisted ? 'Removed from wishlist' : 'Added to wishlist',
-      icon: wasWishlisted ? Icons.favorite_border : Icons.favorite,
+      ref,
+      icon: Icons.favorite,
+      toastIcon: Icons.favorite,
+      toastMessage: 'Added to wishlist',
+      overlayMessage: 'Added to\nwishlist',
     );
   }
 

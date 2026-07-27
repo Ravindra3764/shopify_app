@@ -13,6 +13,7 @@ import 'package:shopify_app/features/product_detail/presentation/screens/product
 import 'package:shopify_app/features/wishlist/presentation/providers/wishlist_providers.dart';
 import 'package:shopify_app/providers/config_providers.dart';
 import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
+import 'package:shopify_app/shared/widgets/cart_added_overlay.dart';
 import 'package:shopify_app/shopify/models/product.dart';
 import 'package:shopify_app/shopify/models/product_detail.dart';
 
@@ -284,9 +285,22 @@ class _PinnedActions extends ConsumerWidget {
                 iconColor: isWishlisted ? AppColors.error : null,
                 onPressed: detail == null
                     ? null
-                    : () => ref
-                          .read(wishlistProvider.notifier)
-                          .toggle(_productOf(detail)),
+                    : () {
+                        final wasWishlisted = isWishlisted;
+                        ref
+                            .read(wishlistProvider.notifier)
+                            .toggle(_productOf(detail));
+                        if (!wasWishlisted) {
+                          showAddedFeedback(
+                            context,
+                            ref,
+                            icon: Icons.favorite,
+                            toastIcon: Icons.favorite,
+                            toastMessage: 'Added to wishlist',
+                            overlayMessage: 'Added to\nwishlist',
+                          );
+                        }
+                      },
               ),
               const SizedBox(width: AppSpacing.sm),
             ],

@@ -174,9 +174,22 @@ class _ProductDetailContentState extends ConsumerState<_ProductDetailContent> {
                     onBack: () => context.pop(),
                     isWishlisted: isWishlisted,
                     onWishlistToggle: featureFlags.wishlistEnabled
-                        ? () => ref
-                              .read(wishlistProvider.notifier)
-                              .toggle(_asProduct)
+                        ? () {
+                            final wasWishlisted = isWishlisted;
+                            ref
+                                .read(wishlistProvider.notifier)
+                                .toggle(_asProduct);
+                            if (!wasWishlisted) {
+                              showAddedFeedback(
+                                context,
+                                ref,
+                                icon: Icons.favorite,
+                                toastIcon: Icons.favorite,
+                                toastMessage: 'Added to wishlist',
+                                overlayMessage: 'Added to\nwishlist',
+                              );
+                            }
+                          }
                         : null,
                   ),
                   const SizedBox(height: AppSpacing.sm),

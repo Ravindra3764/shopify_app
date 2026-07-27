@@ -15,41 +15,89 @@ import 'package:shopify_app/shared/widgets/app_snack_bar.dart';
 /// showCartAddedFeedback(context, ref);
 /// ```
 void showCartAddedFeedback(BuildContext context, WidgetRef ref) {
+  showAddedFeedback(
+    context,
+    ref,
+    icon: Icons.check,
+    toastIcon: Icons.shopping_bag,
+    toastMessage: 'Added to cart',
+    overlayMessage: 'Product added\nto the cart',
+  );
+}
+
+/// Confirms a successful add (cart, wishlist, …) in the tenant's configured
+/// [CartAddedStyle]: a bottom toast, or a centered overlay showing [icon] over
+/// [overlayMessage]. The toast variant uses [toastIcon] and [toastMessage].
+///
+/// ```dart
+/// showAddedFeedback(context, ref,
+///   icon: Icons.favorite, toastIcon: Icons.favorite,
+///   toastMessage: 'Added to wishlist', overlayMessage: 'Added to\nwishlist');
+/// ```
+void showAddedFeedback(
+  BuildContext context,
+  WidgetRef ref, {
+  required IconData icon,
+  required IconData toastIcon,
+  required String toastMessage,
+  required String overlayMessage,
+}) {
   final style = ref.read(appConfigProvider).cartAddedStyle;
   switch (style) {
     case CartAddedStyle.toast:
-      showAppSnackBar(context, 'Added to cart', icon: Icons.shopping_bag);
+      showAppSnackBar(context, toastMessage, icon: toastIcon);
     case CartAddedStyle.overlay:
-      showCartAddedOverlay(context);
+      showAddedOverlay(context, icon: icon, message: overlayMessage);
   }
 }
 
-/// Shows the centered, auto-dismissing "Product added to the cart" overlay,
-/// regardless of the configured style. Prefer [showCartAddedFeedback] unless
-/// the caller has already resolved that the overlay style is active.
+/// Shows the centered, auto-dismissing check-mark cart overlay regardless of
+/// the configured style. Prefer [showCartAddedFeedback] unless the caller has
+/// already resolved that the overlay style is active.
 void showCartAddedOverlay(BuildContext context) {
+  showAddedOverlay(
+    context,
+    icon: Icons.check,
+    message: 'Product added\nto the cart',
+  );
+}
+
+/// Shows the centered, auto-dismissing overlay with [icon] above [message],
+/// regardless of the configured style.
+void showAddedOverlay(
+  BuildContext context, {
+  required IconData icon,
+  required String message,
+}) {
   final overlay = Overlay.maybeOf(context, rootOverlay: true);
   if (overlay == null) return;
 
   late final OverlayEntry entry;
   entry = OverlayEntry(
-    builder: (_) => _CartAddedOverlay(onDismiss: entry.remove),
+    builder: (_) =>
+        _AddedOverlay(icon: icon, message: message, onDismiss: entry.remove),
   );
   overlay.insert(entry);
 }
 
 /// Animated overlay body: fades and scales a translucent card in, holds, then
 /// fades out and calls [onDismiss] to remove its [OverlayEntry].
-class _CartAddedOverlay extends StatefulWidget {
-  const _CartAddedOverlay({required this.onDismiss});
+class _AddedOverlay extends StatefulWidget {
+  const _AddedOverlay({
+    required this.icon,
+    required this.message,
+    required this.onDismiss,
+  });
 
+  final IconData icon;
+  final String message;
   final VoidCallback onDismiss;
 
   @override
-  State<_CartAddedOverlay> createState() => _CartAddedOverlayState();
+  State<_AddedOverlay> createState() => _AddedOverlayState();
 }
 
-class _CartAddedOverlayState extends State<_CartAddedOverlay>
+class _AddedOverlayState extends State<_AddedOverlay>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
@@ -124,15 +172,15 @@ class _CartAddedOverlayState extends State<_CartAddedOverlay>
                 width: AppDimensions.swatchRingWidth,
               ),
             ),
-            child: const Icon(
-              Icons.check,
+            child: Icon(
+              widget.icon,
               color: AppColors.white,
               size: AppDimensions.iconLg,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'Product added\nto the cart',
+            widget.message,
             textAlign: TextAlign.center,
             style: Theme.of(
               context,
